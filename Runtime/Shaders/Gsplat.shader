@@ -30,6 +30,7 @@ Shader "Gsplat/Standard"
             int _SplatCount;
             int _SplatInstanceSize;
             int _SHDegree;
+            float _Slider;
             float4x4 _MATRIX_M;
             StructuredBuffer<uint> _OrderBuffer;
             StructuredBuffer<float3> _PositionBuffer;
@@ -123,7 +124,7 @@ Shader "Gsplat/Standard"
 
                 SplatCovariance cov = ReadCovariance(source);
                 SplatCorner corner;
-                if (!InitCorner(source, cov, center, corner))
+                if (!InitCorner(source, cov, center, _Slider, corner))
                 {
                     o.vertex = discardVec;
                     return o;
