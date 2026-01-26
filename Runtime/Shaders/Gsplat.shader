@@ -141,9 +141,17 @@ Shader "Gsplat/Standard"
             float4 frag(v2f i) : SV_Target
             {
                 float A = dot(i.uv, i.uv);
+
+                #ifdef SHADER_API_DESKTOP
                 if (A > 1.0) discard;
+                #endif
+
                 float alpha = exp(-A * 4.0) * i.color.a;
+
+                #ifdef SHADER_API_DESKTOP
                 if (alpha < 1.0 / 255.0) discard;
+                #endif
+
                 if (_GammaToLinear)
                     return float4(GammaToLinearSpace(i.color.rgb) * alpha, alpha);
                 return float4(i.color.rgb * alpha, alpha);
