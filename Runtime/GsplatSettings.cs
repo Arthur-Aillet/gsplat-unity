@@ -56,6 +56,7 @@ namespace Gsplat
         public bool ShowImportErrors = true;
         public Material[] Materials { get; private set; }
         public Mesh Mesh { get; private set; }
+        public int SortPass = 1;
 
         public bool Valid => Materials?.Length != 0 && Mesh && SplatInstanceSize > 0;
 

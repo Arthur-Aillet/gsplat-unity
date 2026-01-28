@@ -32,34 +32,32 @@ Shader "Gsplat/Standard"
             StructuredBuffer<float3> _SHBuffer;
             #endif
 
+            int _SplatCount;
+            int _SplatInstanceSize;
             StructuredBuffer<uint4> _VertexBuffer;
-
 
             struct appdata
             {
-                uint vertexID : SV_VertexID;
+                float4 vertex : POSITION;
                 #if !defined(UNITY_INSTANCING_ENABLED) && !defined(UNITY_PROCEDURAL_INSTANCING_ENABLED) && !defined(UNITY_STEREO_INSTANCING_ENABLED)
                 uint instanceID : SV_InstanceID;
                 #endif
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
-            void InitSource(appdata v, out SplatSource source)
+            bool InitSource(appdata v, out SplatSource source)
             {
                 #if !defined(UNITY_INSTANCING_ENABLED) && !defined(UNITY_PROCEDURAL_INSTANCING_ENABLED) && !defined(UNITY_STEREO_INSTANCING_ENABLED)
-                source.id = v.instanceID;
+                source.id = v.instanceID * _SplatInstanceSize + asuint(v.vertex.z);
                 #else
-                source.id = unity_InstanceID;
+                source.id = unity_InstanceID * _SplatInstanceSize + asuint(v.vertex.z);
                 #endif
 
-                switch (v.vertexID) {
-                    case 0: source.cornerUV = float2(-1, -1); break;
-                    case 1: source.cornerUV = float2(-1, 1); break;
-                    case 2: source.cornerUV = float2(1, -1); break;
-                    case 3: source.cornerUV = float2(-1, 1); break;
-                    case 4: source.cornerUV = float2(1, -1); break;
-                    case 5: source.cornerUV = float2(1, 1); break;
-                }
+                if (source.id >= _SplatCount)
+                    return false;
+
+                source.cornerUV = float2(v.vertex.x, v.vertex.y);
+                return true;
             }
 
             bool InitCenter(float3 modelCenter, out SplatCenter center)
@@ -95,7 +93,11 @@ Shader "Gsplat/Standard"
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
                 SplatSource source;
-                InitSource(v, source);
+                if (!InitSource(v, source))
+                {
+                    o.vertex = discardVec;
+                    return o;
+                }
 
                 uint4 packedSplat = _VertexBuffer[source.id];
 

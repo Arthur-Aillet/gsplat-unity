@@ -157,7 +157,7 @@ namespace Gsplat
             Assert.IsTrue(Valid);
             cmd.SetComputeIntParam(m_CS, k_eNumKeys, (int)count);
             cmd.SetComputeBufferParam(m_CS, m_kernelInitPayload, k_bSortPayload, payloadBuffer);
-            cmd.DispatchCompute(m_CS, m_kernelInitPayload, (int)DivRoundUp(count, 1024), 1, 1);
+            cmd.DispatchCompute(m_CS, m_kernelInitPayload, (int)DivRoundUp(count, 256), 1, 1);
         }
 
         public void Dispatch(CommandBuffer cmd, Args args)
@@ -183,7 +183,7 @@ namespace Gsplat
             cmd.SetComputeBufferParam(m_CS, m_kernelCalcDistance, k_packedSplatsBuffer, packedSplatsBuffer);
             cmd.SetComputeBufferParam(m_CS, m_kernelCalcDistance, k_bSort, srcKeyBuffer);
             cmd.SetComputeBufferParam(m_CS, m_kernelCalcDistance, k_bSortPayload, srcPayloadBuffer);
-            cmd.DispatchCompute(m_CS, m_kernelCalcDistance, (int)DivRoundUp(args.Count, 1024), 1, 1);
+            cmd.DispatchCompute(m_CS, m_kernelCalcDistance, (int)DivRoundUp(args.Count, 256), 1, 1);
 
             //Set statically located buffers
             //Upsweep
@@ -230,7 +230,7 @@ namespace Gsplat
             cmd.SetComputeBufferParam(m_CS, m_kernelExpand, k_packedSplatsBuffer, packedSplatsBuffer);
             cmd.SetComputeBufferParam(m_CS, m_kernelExpand, k_vertexBuffer, vertexBuffer);
             cmd.SetComputeBufferParam(m_CS, m_kernelExpand, k_bSortPayload, srcPayloadBuffer);
-            cmd.DispatchCompute(m_CS, m_kernelExpand, (int)DivRoundUp(numKeys, 1024), 1, 1);
+            cmd.DispatchCompute(m_CS, m_kernelExpand, (int)DivRoundUp(numKeys, 256), 1, 1);
         }
     }
 }
