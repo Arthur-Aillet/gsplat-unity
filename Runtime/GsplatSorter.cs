@@ -135,8 +135,19 @@ namespace Gsplat
             DispatchSort(m_commandBuffer, camera);
         }
 
+        int i = 0;
+
         public void DispatchSort(CommandBuffer cmd, Camera camera)
         {
+#if !UNITY_EDITOR
+            if (i > 0)
+            {
+                i--;
+                return;
+            }
+
+            i = 30;
+#endif
             foreach (var gs in m_activeGsplats)
             {
                 var res = (Resource)gs.SorterResource;

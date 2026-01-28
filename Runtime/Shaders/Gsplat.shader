@@ -22,7 +22,7 @@ Shader "Gsplat/Standard"
             #pragma vertex vert
             #pragma fragment frag
             #pragma require compute
-            #pragma multi_compile SH_BANDS_0 SH_BANDS_1 SH_BANDS_2 SH_BANDS_3
+            //#pragma multi_compile SH_BANDS_0 SH_BANDS_1 SH_BANDS_2 SH_BANDS_3
 
             #include "UnityCG.cginc"
             #include "Gsplat.hlsl"
@@ -32,9 +32,9 @@ Shader "Gsplat/Standard"
             float4x4 _MATRIX_M;
             StructuredBuffer<uint> _OrderBuffer;
             StructuredBuffer<uint4> _PackedSplatsBuffer;
-            #ifndef SH_BANDS_0
-            StructuredBuffer<float3> _SHBuffer;
-            #endif
+            // #ifndef SH_BANDS_0
+            // //StructuredBuffer<float3> _SHBuffer;
+            // #endif
 
             struct appdata
             {
@@ -106,6 +106,11 @@ Shader "Gsplat/Standard"
                 float4 color, quat;
                 UpackSplat(packedSplat, color, modelCenter, scale, quat);
 
+                if (color.a < 1.0 / 255.0) {
+                    o.vertex = discardVec;
+                    return o;
+                }
+
                 SplatCenter center;
                 if (!InitCenter(modelCenter, center))
                 {
@@ -121,14 +126,14 @@ Shader "Gsplat/Standard"
                     return o;
                 }
 
-                #ifndef SH_BANDS_0
+                //#ifndef SH_BANDS_0
                 // calculate the model-space view direction
-                float3 dir = normalize(mul(center.view, (float3x3)center.modelView));
-                float3 sh[SH_COEFFS];
-                for (int i = 0; i < SH_COEFFS; i++)
-                    sh[i] = _SHBuffer[source.id * SH_COEFFS + i];
-                color.rgb += EvalSH(sh, dir);
-                #endif
+                // float3 dir = normalize(mul(center.view, (float3x3)center.modelView));
+                // float3 sh[SH_COEFFS];
+                // for (int i = 0; i < SH_COEFFS; i++)
+                //     sh[i] = _SHBuffer[source.id * SH_COEFFS + i];
+                // color.rgb += EvalSH(sh, dir);
+                //#endif
 
                 ClipCorner(corner, color.w);
 
@@ -157,7 +162,6 @@ Shader "Gsplat/Standard"
                 return float4(i.color.rgb * alpha, alpha);
             }
             ENDHLSL
-
 
         }
     }

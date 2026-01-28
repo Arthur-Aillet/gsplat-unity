@@ -13,17 +13,17 @@ namespace Gsplat
 
         MaterialPropertyBlock m_propertyBlock;
         public GraphicsBuffer PackedSplatsBuffer { get; private set; }
-        public GraphicsBuffer SHBuffer { get; private set; }
+        //public GraphicsBuffer SHBuffer { get; private set; }
         public GraphicsBuffer OrderBuffer { get; private set; }
         public ISorterResource SorterResource { get; private set; }
 
         public bool Valid =>
-            PackedSplatsBuffer != null &&
-            (SHBands == 0 || SHBuffer != null);
+            PackedSplatsBuffer != null;// &&
+                                       //(SHBands == 0 /* ||  SHBuffer != null */);
 
         static readonly int k_orderBuffer = Shader.PropertyToID("_OrderBuffer");
         static readonly int k_packedSplatsBuffer = Shader.PropertyToID("_PackedSplatsBuffer");
-        static readonly int k_shBuffer = Shader.PropertyToID("_SHBuffer");
+        //static readonly int k_shBuffer = Shader.PropertyToID("_SHBuffer");
         static readonly int k_matrixM = Shader.PropertyToID("_MATRIX_M");
         static readonly int k_splatInstanceSize = Shader.PropertyToID("_SplatInstanceSize");
         static readonly int k_splatCount = Shader.PropertyToID("_SplatCount");
@@ -52,10 +52,10 @@ namespace Gsplat
         {
             PackedSplatsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)splatCount,
                 System.Runtime.InteropServices.Marshal.SizeOf(typeof(uint)) * 4);
-            if (SHBands > 0)
-                SHBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
-                    GsplatUtils.SHBandsToCoefficientCount(SHBands) * (int)splatCount,
-                    System.Runtime.InteropServices.Marshal.SizeOf(typeof(Vector3)));
+            // if (SHBands > 0)
+            //     SHBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
+            //         GsplatUtils.SHBandsToCoefficientCount(SHBands) * (int)splatCount,
+            //         System.Runtime.InteropServices.Marshal.SizeOf(typeof(Vector3)));
             OrderBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)splatCount, sizeof(uint));
 
             SorterResource = GsplatSorter.Instance.CreateSorterResource(splatCount, PackedSplatsBuffer, OrderBuffer);
@@ -66,26 +66,26 @@ namespace Gsplat
             m_propertyBlock ??= new MaterialPropertyBlock();
             m_propertyBlock.SetBuffer(k_packedSplatsBuffer, PackedSplatsBuffer);
             m_propertyBlock.SetBuffer(k_orderBuffer, OrderBuffer);
-            if (SHBands > 0)
-                m_propertyBlock.SetBuffer(k_shBuffer, SHBuffer);
+            // if (SHBands > 0)
+            //     m_propertyBlock//.SetBuffer(k_shBuffer, SHBuffer);
         }
 
         public void Dispose()
         {
             PackedSplatsBuffer?.Dispose();
-            SHBuffer?.Dispose();
+            //SHBuffer?.Dispose();
             OrderBuffer?.Dispose();
             SorterResource?.Dispose();
 
             PackedSplatsBuffer = null;
-            SHBuffer = null;
+            //            //SHBuffer = null;
             OrderBuffer = null;
         }
 
         /// <summary>
         /// Render the splats.
-        /// </summary>
-        /// <param name="splatCount">It can be less than or equal to the SplatCount property.</param>
+        /// </summary/*    >
+        /// <param */ name="splatCount">It can be less than or equal to the SplatCount property.</param>
         /// <param name="transform">Object transform.</param>
         /// <param name="localBounds">Bounding box in object space.</param>
         /// <param name="layer">Layer used for rendering.</param>
@@ -101,13 +101,12 @@ namespace Gsplat
             m_propertyBlock.SetInteger(k_gammaToLinear, gammaToLinear ? 1 : 0);
             m_propertyBlock.SetInteger(k_splatInstanceSize, (int)GsplatSettings.Instance.SplatInstanceSize);
             m_propertyBlock.SetMatrix(k_matrixM, transform.localToWorldMatrix);
-            var rp = new RenderParams(GsplatSettings.Instance.Materials[Math.Min(SHBands, shDegree)])
+            var rp = new RenderParams(GsplatSettings.Instance.Materials[/*Math.Min(SHBands, shDegree)*/0])
             {
                 worldBounds = GsplatUtils.CalcWorldBounds(localBounds, transform),
                 matProps = m_propertyBlock,
                 layer = layer
             };
-
             Graphics.RenderMeshPrimitives(rp, GsplatSettings.Instance.Mesh, 0,
                 Mathf.CeilToInt(splatCount / (float)GsplatSettings.Instance.SplatInstanceSize));
         }

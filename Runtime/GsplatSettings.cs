@@ -106,7 +106,7 @@ namespace Gsplat
             for (var i = 0; i < 4; ++i)
             {
                 Materials[i] = new Material(Shader) { hideFlags = HideFlags.HideAndDontSave };
-                Materials[i].EnableKeyword($"SH_BANDS_{i}");
+                //Materials[i].EnableKeyword($"SH_BANDS_{i}");
             }
         }
 
