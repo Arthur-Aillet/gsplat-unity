@@ -14,6 +14,7 @@ namespace Gsplat
     public class GsplatSortPass
     {
         static readonly int k_packedSplatsBuffer = Shader.PropertyToID("_PackedSplatsBuffer");
+        static readonly int k_vertexBuffer = Shader.PropertyToID("_VertexBuffer");
         static readonly int k_matrixMv = Shader.PropertyToID("_MatrixMV");
         static readonly int k_eNumKeys = Shader.PropertyToID("e_numKeys");
         static readonly int k_eThreadBlocks = Shader.PropertyToID("e_threadBlocks");
@@ -42,6 +43,7 @@ namespace Gsplat
             public uint Count;
             public Matrix4x4 MatrixMv;
             public GraphicsBuffer PackedSplatsBuffer;
+            public GraphicsBuffer VertexBuffer;
             public GraphicsBuffer InputKeys;
             public GraphicsBuffer InputValues;
             public SupportResources Resources;
@@ -94,6 +96,7 @@ namespace Gsplat
         readonly int m_kernelUpsweep = -1;
         readonly int m_kernelScan = -1;
         readonly int m_kernelDownsweep = -1;
+        readonly int m_kernelExpand = -1;
 
         readonly bool m_Valid;
 
@@ -110,6 +113,7 @@ namespace Gsplat
                 m_kernelUpsweep = cs.FindKernel("Upsweep");
                 m_kernelScan = cs.FindKernel("Scan");
                 m_kernelDownsweep = cs.FindKernel("Downsweep");
+                m_kernelExpand = cs.FindKernel("Expand");
             }
 
             m_Valid = m_kernelInitPayload >= 0 &&
@@ -117,7 +121,8 @@ namespace Gsplat
                       m_kernelInitDeviceRadixSort >= 0 &&
                       m_kernelUpsweep >= 0 &&
                       m_kernelScan >= 0 &&
-                      m_kernelDownsweep >= 0;
+                      m_kernelDownsweep >= 0 &&
+                      m_kernelExpand >= 0;
             if (m_Valid)
             {
                 if (!cs.IsSupported(m_kernelInitPayload) ||
@@ -125,7 +130,8 @@ namespace Gsplat
                     !cs.IsSupported(m_kernelInitDeviceRadixSort) ||
                     !cs.IsSupported(m_kernelUpsweep) ||
                     !cs.IsSupported(m_kernelScan) ||
-                    !cs.IsSupported(m_kernelDownsweep))
+                    !cs.IsSupported(m_kernelDownsweep) ||
+                    !cs.IsSupported(m_kernelExpand))
                 {
                     m_Valid = false;
                 }
@@ -159,6 +165,7 @@ namespace Gsplat
             Assert.IsTrue(Valid);
 
             GraphicsBuffer packedSplatsBuffer = args.PackedSplatsBuffer;
+            GraphicsBuffer vertexBuffer = args.VertexBuffer;
             GraphicsBuffer srcKeyBuffer = args.InputKeys;
             GraphicsBuffer srcPayloadBuffer = args.InputValues;
             GraphicsBuffer dstKeyBuffer = args.Resources.AltBuffer;
@@ -218,6 +225,12 @@ namespace Gsplat
                 (srcKeyBuffer, dstKeyBuffer) = (dstKeyBuffer, srcKeyBuffer);
                 (srcPayloadBuffer, dstPayloadBuffer) = (dstPayloadBuffer, srcPayloadBuffer);
             }
+
+            cmd.SetComputeIntParam(m_CS, k_eNumKeys, (int)numKeys);
+            cmd.SetComputeBufferParam(m_CS, m_kernelExpand, k_packedSplatsBuffer, packedSplatsBuffer);
+            cmd.SetComputeBufferParam(m_CS, m_kernelExpand, k_vertexBuffer, vertexBuffer);
+            cmd.SetComputeBufferParam(m_CS, m_kernelExpand, k_bSortPayload, srcPayloadBuffer);
+            cmd.DispatchCompute(m_CS, m_kernelExpand, (int)DivRoundUp(numKeys, 1024), 1, 1);
         }
     }
 }

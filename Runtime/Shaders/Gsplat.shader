@@ -27,38 +27,39 @@ Shader "Gsplat/Standard"
             #include "UnityCG.cginc"
             #include "Gsplat.hlsl"
             bool _GammaToLinear;
-            int _SplatCount;
-            int _SplatInstanceSize;
             float4x4 _MATRIX_M;
-            StructuredBuffer<uint> _OrderBuffer;
-            StructuredBuffer<uint4> _PackedSplatsBuffer;
             #ifndef SH_BANDS_0
             StructuredBuffer<float3> _SHBuffer;
             #endif
 
+            StructuredBuffer<uint4> _VertexBuffer;
+
+
             struct appdata
             {
-                float4 vertex : POSITION;
+                uint vertexID : SV_VertexID;
                 #if !defined(UNITY_INSTANCING_ENABLED) && !defined(UNITY_PROCEDURAL_INSTANCING_ENABLED) && !defined(UNITY_STEREO_INSTANCING_ENABLED)
                 uint instanceID : SV_InstanceID;
                 #endif
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
-            bool InitSource(appdata v, out SplatSource source)
+            void InitSource(appdata v, out SplatSource source)
             {
                 #if !defined(UNITY_INSTANCING_ENABLED) && !defined(UNITY_PROCEDURAL_INSTANCING_ENABLED) && !defined(UNITY_STEREO_INSTANCING_ENABLED)
-                source.order = v.instanceID * _SplatInstanceSize + asuint(v.vertex.z);
+                source.id = v.instanceID;
                 #else
-                source.order = unity_InstanceID * _SplatInstanceSize + asuint(v.vertex.z);
+                source.id = unity_InstanceID;
                 #endif
 
-                if (source.order >= _SplatCount)
-                    return false;
-
-                source.id = _OrderBuffer[source.order];
-                source.cornerUV = float2(v.vertex.x, v.vertex.y);
-                return true;
+                switch (v.vertexID) {
+                    case 0: source.cornerUV = float2(-1, -1); break;
+                    case 1: source.cornerUV = float2(-1, 1); break;
+                    case 2: source.cornerUV = float2(1, -1); break;
+                    case 3: source.cornerUV = float2(-1, 1); break;
+                    case 4: source.cornerUV = float2(1, -1); break;
+                    case 5: source.cornerUV = float2(1, 1); break;
+                }
             }
 
             bool InitCenter(float3 modelCenter, out SplatCenter center)
@@ -94,13 +95,9 @@ Shader "Gsplat/Standard"
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
                 SplatSource source;
-                if (!InitSource(v, source))
-                {
-                    o.vertex = discardVec;
-                    return o;
-                }
+                InitSource(v, source);
 
-                uint4 packedSplat = _PackedSplatsBuffer[source.id];
+                uint4 packedSplat = _VertexBuffer[source.id];
 
                 float3 modelCenter, scale;
                 float4 color, quat;
@@ -112,6 +109,7 @@ Shader "Gsplat/Standard"
                     o.vertex = discardVec;
                     return o;
                 }
+
 
                 SplatCovariance cov = CalcCovariance(quat, scale);
                 SplatCorner corner;

@@ -6,7 +6,6 @@
 
 struct SplatSource
 {
-    uint order;
     uint id;
     float2 cornerUV;
 };

@@ -32,15 +32,17 @@ namespace Gsplat
         {
             public GraphicsBuffer PackedSplatsBuffer { get; }
             public GraphicsBuffer OrderBuffer { get; }
+            public GraphicsBuffer VertexBuffer { get; }
 
             public GraphicsBuffer InputKeys { get; private set; }
             public GsplatSortPass.SupportResources Resources { get; }
             public bool Initialized;
 
-            public Resource(uint count, GraphicsBuffer packedSplatsBuffer, GraphicsBuffer orderBuffer)
+            public Resource(uint count, GraphicsBuffer packedSplatsBuffer, GraphicsBuffer orderBuffer, GraphicsBuffer vertexBuffer)
             {
                 PackedSplatsBuffer = packedSplatsBuffer;
                 OrderBuffer = orderBuffer;
+                VertexBuffer = vertexBuffer;
 
                 InputKeys = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)count, sizeof(uint));
                 Resources = GsplatSortPass.SupportResources.Load(count);
@@ -151,6 +153,7 @@ namespace Gsplat
                     Count = gs.SplatCount,
                     MatrixMv = camera.worldToCameraMatrix * gs.transform.localToWorldMatrix,
                     PackedSplatsBuffer = res.PackedSplatsBuffer,
+                    VertexBuffer = res.VertexBuffer,
                     InputKeys = res.InputKeys,
                     InputValues = res.OrderBuffer,
                     Resources = res.Resources
@@ -160,9 +163,9 @@ namespace Gsplat
         }
 
         public ISorterResource CreateSorterResource(uint count, GraphicsBuffer packedSplatsBuffer,
-            GraphicsBuffer orderBuffer)
+            GraphicsBuffer orderBuffer, GraphicsBuffer vertexBuffer)
         {
-            return new Resource(count, packedSplatsBuffer, orderBuffer);
+            return new Resource(count, packedSplatsBuffer, orderBuffer, vertexBuffer);
         }
     }
 }
