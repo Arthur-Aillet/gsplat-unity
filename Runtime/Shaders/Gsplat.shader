@@ -81,7 +81,7 @@ Shader "Gsplat/Standard"
             {
                 float2 uv : TEXCOORD0;
                 float4 vertex : SV_POSITION;
-                float4 color: COLOR;
+                half4 color: COLOR;
                 UNITY_VERTEX_OUTPUT_STEREO
             };
 
@@ -102,7 +102,8 @@ Shader "Gsplat/Standard"
                 uint4 packedSplat = _VertexBuffer[source.id];
 
                 float3 modelCenter, scale;
-                float4 color, quat;
+                half4 color;
+                float4 quat;
                 UpackSplat(packedSplat, color, modelCenter, scale, quat);
 
                 SplatCenter center;
@@ -138,7 +139,7 @@ Shader "Gsplat/Standard"
                 return o;
             }
 
-            float4 frag(v2f i) : SV_Target
+            half4 frag(v2f i) : SV_Target
             {
                 float A = dot(i.uv, i.uv);
 
@@ -153,8 +154,8 @@ Shader "Gsplat/Standard"
                 #endif
 
                 if (_GammaToLinear)
-                    return float4(GammaToLinearSpace(i.color.rgb) * alpha, alpha);
-                return float4(i.color.rgb * alpha, alpha);
+                    return half4(GammaToLinearSpace(i.color.rgb) * alpha, alpha);
+                return half4(i.color.rgb * alpha, alpha);
             }
             ENDHLSL
 
