@@ -75,10 +75,12 @@ namespace Gsplat
             PackedSplatsBuffer?.Dispose();
             SHBuffer?.Dispose();
             OrderBuffer?.Dispose();
+            VertexBuffer?.Dispose();
             SorterResource?.Dispose();
 
             PackedSplatsBuffer = null;
             SHBuffer = null;
+            VertexBuffer = null;
             OrderBuffer = null;
         }
 
