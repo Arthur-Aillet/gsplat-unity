@@ -8,6 +8,7 @@
 using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Rendering;
+using UnityEngine.XR;
 
 namespace Gsplat
 {
@@ -16,6 +17,10 @@ namespace Gsplat
         static readonly int k_packedSplatsBuffer = Shader.PropertyToID("_PackedSplatsBuffer");
         static readonly int k_vertexBuffer = Shader.PropertyToID("_VertexBuffer");
         static readonly int k_matrixMv = Shader.PropertyToID("_MatrixMV");
+        static readonly int k_matrixObjectToWorld = Shader.PropertyToID("_MatrixObjectToWorld");
+        static readonly int k_matrixWorldToObject = Shader.PropertyToID("_MatrixWorldToObject");
+        static readonly int k_vecScreenParams = Shader.PropertyToID("_VecScreenParams");
+        static readonly int k_vecWorldSpaceCameraPos = Shader.PropertyToID("_VecWorldSpaceCameraPos");
         static readonly int k_eNumKeys = Shader.PropertyToID("e_numKeys");
         static readonly int k_eThreadBlocks = Shader.PropertyToID("e_threadBlocks");
         static readonly int k_bPassHist = Shader.PropertyToID("b_passHist");
@@ -42,6 +47,8 @@ namespace Gsplat
         {
             public uint Count;
             public Matrix4x4 MatrixMv;
+            public Matrix4x4 MatrixObjectToWorld;
+            public Matrix4x4 MatrixWorldToObject;
             public GraphicsBuffer PackedSplatsBuffer;
             public GraphicsBuffer VertexBuffer;
             public GraphicsBuffer InputKeys;
@@ -160,7 +167,7 @@ namespace Gsplat
             cmd.DispatchCompute(m_CS, m_kernelInitPayload, (int)DivRoundUp(count, 256), 1, 1);
         }
 
-        public void Dispatch(CommandBuffer cmd, Args args)
+        public void Dispatch(CommandBuffer cmd, Args args, Camera cam)
         {
             Assert.IsTrue(Valid);
 
@@ -174,10 +181,20 @@ namespace Gsplat
             uint numKeys = args.Count;
             uint threadBlocks = DivRoundUp(args.Count, k_deviceRadixSortPartitionSize);
 
+
+            int screenW = cam.pixelWidth, screenH = cam.pixelHeight;
+            int eyeW = XRSettings.eyeTextureWidth, eyeH = XRSettings.eyeTextureHeight;
+            Vector4 screenPar = new(eyeW != 0 ? eyeW : screenW, eyeH != 0 ? eyeH : screenH, 0, 0);
+            Vector4 camPos = cam.transform.position;
+
             // Setup overall constants
             cmd.SetComputeIntParam(m_CS, k_eNumKeys, (int)numKeys);
             cmd.SetComputeIntParam(m_CS, k_eThreadBlocks, (int)threadBlocks);
             cmd.SetComputeMatrixParam(m_CS, k_matrixMv, args.MatrixMv);
+            cmd.SetComputeMatrixParam(m_CS, k_matrixObjectToWorld, args.MatrixObjectToWorld);
+            cmd.SetComputeMatrixParam(m_CS, k_matrixWorldToObject, args.MatrixWorldToObject);
+            cmd.SetComputeVectorParam(m_CS, k_vecScreenParams, screenPar);
+            cmd.SetComputeVectorParam(m_CS, k_vecWorldSpaceCameraPos, camPos);
 
             //CalcDistance
             cmd.SetComputeBufferParam(m_CS, m_kernelCalcDistance, k_packedSplatsBuffer, packedSplatsBuffer);

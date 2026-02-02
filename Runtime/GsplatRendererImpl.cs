@@ -23,6 +23,7 @@ namespace Gsplat
             (SHBands == 0 || SHBuffer != null);
 
         static readonly int k_vertexBuffer = Shader.PropertyToID("_VertexBuffer");
+        static readonly int k_orderBuffer = Shader.PropertyToID("_OrderBuffer");
         static readonly int k_shBuffer = Shader.PropertyToID("_SHBuffer");
         static readonly int k_matrixM = Shader.PropertyToID("_MATRIX_M");
         static readonly int k_gammaToLinear = Shader.PropertyToID("_GammaToLinear");
@@ -56,8 +57,7 @@ namespace Gsplat
                     GsplatUtils.SHBandsToCoefficientCount(SHBands) * (int)splatCount,
                     System.Runtime.InteropServices.Marshal.SizeOf(typeof(Vector3)));
             OrderBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)splatCount, sizeof(uint));
-            VertexBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Vertex, (int)splatCount,
-                System.Runtime.InteropServices.Marshal.SizeOf(typeof(uint)) * 4);
+            VertexBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)splatCount, 40);
 
             SorterResource = GsplatSorter.Instance.CreateSorterResource(splatCount, PackedSplatsBuffer, OrderBuffer, VertexBuffer);
         }
@@ -66,6 +66,7 @@ namespace Gsplat
         {
             m_propertyBlock ??= new MaterialPropertyBlock();
             m_propertyBlock.SetBuffer(k_vertexBuffer, VertexBuffer);
+            m_propertyBlock.SetBuffer(k_orderBuffer, OrderBuffer);
             if (SHBands > 0)
                 m_propertyBlock.SetBuffer(k_shBuffer, SHBuffer);
         }
@@ -110,8 +111,9 @@ namespace Gsplat
                 layer = layer
             };
 
-            Graphics.RenderMeshPrimitives(rp, GsplatSettings.Instance.Mesh, 0,
-                Mathf.CeilToInt(splatCount / (float)GsplatSettings.Instance.SplatInstanceSize));
+            Graphics.RenderPrimitives(rp, MeshTopology.Triangles, 6, (int)splatCount);
+            // Graphics.RenderMeshPrimitives(rp, GsplatSettings.Instance.Mesh, 0,
+            //     Mathf.CeilToInt(splatCount / (float)GsplatSettings.Instance.SplatInstanceSize));
         }
     }
 }

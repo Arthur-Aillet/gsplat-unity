@@ -148,12 +148,12 @@ namespace Gsplat
 
             if (GsplatSettings.Instance.SortPass == 1)
             {
-                if (i != 0)
-                {
-                    i--;
-                    return;
-                }
-                i = 15;
+                // if (i != 0)
+                // {
+                //     i--;
+                //     return;
+                // }
+                // i = 15;
             }
 
 
@@ -169,6 +169,8 @@ namespace Gsplat
                 var sorterArgs = new GsplatSortPass.Args
                 {
                     Count = gs.SplatCount,
+                    MatrixObjectToWorld = gs.transform.localToWorldMatrix,
+                    MatrixWorldToObject = gs.transform.worldToLocalMatrix,
                     MatrixMv = camera.worldToCameraMatrix * gs.transform.localToWorldMatrix,
                     PackedSplatsBuffer = res.PackedSplatsBuffer,
                     VertexBuffer = res.VertexBuffer,
@@ -176,7 +178,7 @@ namespace Gsplat
                     InputValues = res.OrderBuffer,
                     Resources = res.Resources
                 };
-                m_sortPass.Dispatch(cmd, sorterArgs);
+                m_sortPass.Dispatch(cmd, sorterArgs, camera);
             }
         }
 
