@@ -21,6 +21,7 @@ namespace Gsplat
         static readonly int k_matrixWorldToObject = Shader.PropertyToID("_MatrixWorldToObject");
         static readonly int k_vecScreenParams = Shader.PropertyToID("_VecScreenParams");
         static readonly int k_vecWorldSpaceCameraPos = Shader.PropertyToID("_VecWorldSpaceCameraPos");
+        static readonly int k_projectionMatrix = Shader.PropertyToID("_ProjectionMatrix");
         static readonly int k_eNumKeys = Shader.PropertyToID("e_numKeys");
         static readonly int k_eThreadBlocks = Shader.PropertyToID("e_threadBlocks");
         static readonly int k_bPassHist = Shader.PropertyToID("b_passHist");
@@ -195,7 +196,9 @@ namespace Gsplat
             cmd.SetComputeMatrixParam(m_CS, k_matrixWorldToObject, args.MatrixWorldToObject);
             cmd.SetComputeVectorParam(m_CS, k_vecScreenParams, screenPar);
             cmd.SetComputeVectorParam(m_CS, k_vecWorldSpaceCameraPos, camPos);
+            //cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Right);
 
+            cmd.SetComputeMatrixParam(m_CS, k_projectionMatrix, cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Left));
             //CalcDistance
             cmd.SetComputeBufferParam(m_CS, m_kernelCalcDistance, k_packedSplatsBuffer, packedSplatsBuffer);
             cmd.SetComputeBufferParam(m_CS, m_kernelCalcDistance, k_bSort, srcKeyBuffer);

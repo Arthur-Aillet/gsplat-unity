@@ -102,7 +102,9 @@ Shader "Gsplat/Standard"
                 instID = _OrderBuffer[instID];
                 SplatViewData view = _VertexBuffer[instID];
 
-                float4 centerClipPos = view.pos;
+                //float4 centerClipPos = view.pos;
+
+                float4 centerClipPos = mul(UNITY_MATRIX_VP, view.pos);
 
                 bool behindCam = centerClipPos.w <= 0;
                 if (behindCam)
@@ -116,22 +118,22 @@ Shader "Gsplat/Standard"
                 uint idx = vtxID;
 
                 switch (idx) {
-                    case 0: o.pos = float2(-2, -2); break;
-                    case 1: o.pos = float2(-2, 2); break;
-                    case 2: o.pos = float2(2, -2); break;
-                    case 3: o.pos = float2(-2, 2); break;
-                    case 4: o.pos = float2(2, -2); break;
-                    case 5: o.pos = float2(2, 2); break;
+                    case 0: o.pos = float2(-1, -1); break;
+                    case 1: o.pos = float2(-1, 1); break;
+                    case 2: o.pos = float2(1, -1); break;
+                    case 3: o.pos = float2(-1, 1); break;
+                    case 4: o.pos = float2(1, -1); break;
+                    case 5: o.pos = float2(1, 1); break;
                 }
                 // float2 quadPos = float2(idx&1, (idx>>1)&1) * 2.0 - 1.0;
                 // quadPos *= 2;
-
+                o.pos *= 2;
                 // o.pos = quadPos;
-
+                    // float2 c = centerClipPos.ww / _ScreenParams.xy;
+                    // float2 deltaScreenPos = (o.pos.x * view.axis1 + o.pos.y * view.axis2) * c;
                 float2 deltaScreenPos = (o.pos.x * view.axis1 + o.pos.y * view.axis2) * 2 / _ScreenParams.xy;
 		        o.vertex = centerClipPos;
                 o.vertex.xy += deltaScreenPos * centerClipPos.w;
-
 
                 // SplatCovariance cov = CalcCovariance(quat, scale);
                 // SplatCorner corner;

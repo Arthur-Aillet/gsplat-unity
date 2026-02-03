@@ -35,6 +35,7 @@ StructuredBuffer<uint4> _PackedSplatsBuffer;
 float4x4 _MatrixMV;
 float4x4 _MatrixObjectToWorld;
 float4x4 _MatrixWorldToObject;
+float4x4 _ProjectionMatrix;
 float4 _VecScreenParams;
 float4 _VecWorldSpaceCameraPos;
 
@@ -235,13 +236,13 @@ void Expand(uint3 id : SV_DispatchThreadID)
     float3 centerWorldPos = mul(_MatrixObjectToWorld, float4(splat.pos, 1)).xyz;
     float4 centerClipPos = mul(UNITY_MATRIX_VP, float4(centerWorldPos, 1));
 
-    view.pos = centerClipPos;
+    view.pos = float4(centerWorldPos, 1);
 
     bool behindCam = centerClipPos.w <= 0;
     if (!behindCam)
     {
         SplatCovariance cov = CalcCovariance(splat.quat, splat.scale);
-        float3 cov2d = CalcCovariance2D(splat.pos, cov.covA, cov.covB, _MatrixMV, UNITY_MATRIX_P, _VecScreenParams);
+        float3 cov2d = CalcCovariance2D(splat.pos, cov.covA, cov.covB, _MatrixMV, _ProjectionMatrix, _VecScreenParams);
         // float4 boxRot = splat.quat;
         // float3 boxSize = splat.scale;
 
@@ -253,8 +254,8 @@ void Expand(uint3 id : SV_DispatchThreadID)
 
         DecomposeCovariance(cov2d, view.axis1, view.axis2);
 
-        float3 worldViewDir = _VecWorldSpaceCameraPos.xyz - centerWorldPos;
-        float3 objViewDir = mul((float3x3)_MatrixWorldToObject, worldViewDir);
+        //float3 worldViewDir = _VecWorldSpaceCameraPos.xyz - centerWorldPos;
+        //float3 objViewDir = mul((float3x3)_MatrixWorldToObject, worldViewDir);
 
         view.color = splat.color;
     }
