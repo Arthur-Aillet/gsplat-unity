@@ -229,7 +229,9 @@ void Expand(uint3 id : SV_DispatchThreadID)
     if (idx >= e_numKeys)
         return;
 
-    uint4 packedSplat = _PackedSplatsBuffer[idx];
+    uint sortedIndex = b_sortPayload[idx];
+    uint4 packedSplat = _PackedSplatsBuffer[sortedIndex];
+
     Splat splat = UnpackSplat(packedSplat);
     SplatViewData view = (SplatViewData)0;
 

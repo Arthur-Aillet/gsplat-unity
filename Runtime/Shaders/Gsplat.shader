@@ -41,7 +41,6 @@ Shader "Gsplat/Standard"
 
             int _SplatCount;
             int _SplatInstanceSize;
-            StructuredBuffer<uint> _OrderBuffer;
             StructuredBuffer<SplatViewData> _VertexBuffer;
 
             // struct appdata
@@ -100,7 +99,6 @@ Shader "Gsplat/Standard"
                 UNITY_INITIALIZE_OUTPUT(v2f, o);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
-                instID = _OrderBuffer[instID];
                 SplatViewData view = _VertexBuffer[instID];
 
                 //float4 centerClipPos = view.pos;
