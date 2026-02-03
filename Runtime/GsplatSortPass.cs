@@ -167,7 +167,7 @@ namespace Gsplat
             cmd.SetComputeBufferParam(m_CS, m_kernelInitPayload, k_bSortPayload, payloadBuffer);
             cmd.DispatchCompute(m_CS, m_kernelInitPayload, (int)DivRoundUp(count, 256), 1, 1);
         }
-
+        private int frame = 0;
         public void Dispatch(CommandBuffer cmd, Args args, Camera cam)
         {
             Assert.IsTrue(Valid);
@@ -196,54 +196,82 @@ namespace Gsplat
             cmd.SetComputeMatrixParam(m_CS, k_matrixWorldToObject, args.MatrixWorldToObject);
             cmd.SetComputeVectorParam(m_CS, k_vecScreenParams, screenPar);
             cmd.SetComputeVectorParam(m_CS, k_vecWorldSpaceCameraPos, camPos);
-            //cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Right);
 
-            cmd.SetComputeMatrixParam(m_CS, k_projectionMatrix, cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Left));
-            //CalcDistance
-            cmd.SetComputeBufferParam(m_CS, m_kernelCalcDistance, k_packedSplatsBuffer, packedSplatsBuffer);
-            cmd.SetComputeBufferParam(m_CS, m_kernelCalcDistance, k_bSort, srcKeyBuffer);
-            cmd.SetComputeBufferParam(m_CS, m_kernelCalcDistance, k_bSortPayload, srcPayloadBuffer);
-            cmd.DispatchCompute(m_CS, m_kernelCalcDistance, (int)DivRoundUp(args.Count, 256), 1, 1);
-
-            //Set statically located buffers
-            //Upsweep
-            cmd.SetComputeBufferParam(m_CS, m_kernelUpsweep, k_bPassHist, args.Resources.PassHistBuffer);
-            cmd.SetComputeBufferParam(m_CS, m_kernelUpsweep, k_bGlobalHist, args.Resources.GlobalHistBuffer);
-
-            //Scan
-            cmd.SetComputeBufferParam(m_CS, m_kernelScan, k_bPassHist, args.Resources.PassHistBuffer);
-
-            //Downsweep
-            cmd.SetComputeBufferParam(m_CS, m_kernelDownsweep, k_bPassHist, args.Resources.PassHistBuffer);
-            cmd.SetComputeBufferParam(m_CS, m_kernelDownsweep, k_bGlobalHist, args.Resources.GlobalHistBuffer);
-
-            //Clear the global histogram
-            cmd.SetComputeBufferParam(m_CS, m_kernelInitDeviceRadixSort, k_bGlobalHist,
-                args.Resources.GlobalHistBuffer);
-            cmd.DispatchCompute(m_CS, m_kernelInitDeviceRadixSort, 1, 1, 1);
-
-            // Execute the sort algorithm in 8-bit increments
-            for (uint radixShift = 0; radixShift < 32; radixShift += k_deviceRadixSortBits)
+            if (XRSettings.isDeviceActive == true)
             {
-                cmd.SetComputeIntParam(m_CS, k_eRadixShift, (int)radixShift);
+                Matrix4x4 left = cam.GetStereoProjectionMatrix(Camera.StereoscopicEye.Left);
+                cmd.SetComputeMatrixParam(m_CS, k_projectionMatrix, left);
+            } else
+            {
+                cmd.SetComputeMatrixParam(m_CS, k_projectionMatrix, cam.projectionMatrix);
+            }
 
+            bool sort = true;
+            if (GsplatSettings.Instance.SortPass == 2)
+            {
+                sort = false;
+            }
+
+            if (GsplatSettings.Instance.SortPass == 1)
+            {
+                if (frame != 0)
+                {
+                    frame--;
+                    sort = false;
+                } else
+                {
+                    frame = 15;
+                }
+            }
+
+            if (sort)
+            {
+                //CalcDistance
+                cmd.SetComputeBufferParam(m_CS, m_kernelCalcDistance, k_packedSplatsBuffer, packedSplatsBuffer);
+                cmd.SetComputeBufferParam(m_CS, m_kernelCalcDistance, k_bSort, srcKeyBuffer);
+                cmd.SetComputeBufferParam(m_CS, m_kernelCalcDistance, k_bSortPayload, srcPayloadBuffer);
+                cmd.DispatchCompute(m_CS, m_kernelCalcDistance, (int)DivRoundUp(args.Count, 256), 1, 1);
+
+                //Set statically located buffers
                 //Upsweep
-                cmd.SetComputeBufferParam(m_CS, m_kernelUpsweep, k_bSort, srcKeyBuffer);
-                cmd.DispatchCompute(m_CS, m_kernelUpsweep, (int)threadBlocks, 1, 1);
+                cmd.SetComputeBufferParam(m_CS, m_kernelUpsweep, k_bPassHist, args.Resources.PassHistBuffer);
+                cmd.SetComputeBufferParam(m_CS, m_kernelUpsweep, k_bGlobalHist, args.Resources.GlobalHistBuffer);
 
-                // Scan
-                cmd.DispatchCompute(m_CS, m_kernelScan, (int)k_deviceRadixSortRadix, 1, 1);
+                //Scan
+                cmd.SetComputeBufferParam(m_CS, m_kernelScan, k_bPassHist, args.Resources.PassHistBuffer);
 
-                // Downsweep
-                cmd.SetComputeBufferParam(m_CS, m_kernelDownsweep, k_bSort, srcKeyBuffer);
-                cmd.SetComputeBufferParam(m_CS, m_kernelDownsweep, k_bSortPayload, srcPayloadBuffer);
-                cmd.SetComputeBufferParam(m_CS, m_kernelDownsweep, k_bAlt, dstKeyBuffer);
-                cmd.SetComputeBufferParam(m_CS, m_kernelDownsweep, k_bAltPayload, dstPayloadBuffer);
-                cmd.DispatchCompute(m_CS, m_kernelDownsweep, (int)threadBlocks, 1, 1);
+                //Downsweep
+                cmd.SetComputeBufferParam(m_CS, m_kernelDownsweep, k_bPassHist, args.Resources.PassHistBuffer);
+                cmd.SetComputeBufferParam(m_CS, m_kernelDownsweep, k_bGlobalHist, args.Resources.GlobalHistBuffer);
 
-                // Swap
-                (srcKeyBuffer, dstKeyBuffer) = (dstKeyBuffer, srcKeyBuffer);
-                (srcPayloadBuffer, dstPayloadBuffer) = (dstPayloadBuffer, srcPayloadBuffer);
+                //Clear the global histogram
+                cmd.SetComputeBufferParam(m_CS, m_kernelInitDeviceRadixSort, k_bGlobalHist,
+                    args.Resources.GlobalHistBuffer);
+                cmd.DispatchCompute(m_CS, m_kernelInitDeviceRadixSort, 1, 1, 1);
+
+                // Execute the sort algorithm in 8-bit increments
+                for (uint radixShift = 0; radixShift < 32; radixShift += k_deviceRadixSortBits)
+                {
+                    cmd.SetComputeIntParam(m_CS, k_eRadixShift, (int)radixShift);
+
+                    //Upsweep
+                    cmd.SetComputeBufferParam(m_CS, m_kernelUpsweep, k_bSort, srcKeyBuffer);
+                    cmd.DispatchCompute(m_CS, m_kernelUpsweep, (int)threadBlocks, 1, 1);
+
+                    // Scan
+                    cmd.DispatchCompute(m_CS, m_kernelScan, (int)k_deviceRadixSortRadix, 1, 1);
+
+                    // Downsweep
+                    cmd.SetComputeBufferParam(m_CS, m_kernelDownsweep, k_bSort, srcKeyBuffer);
+                    cmd.SetComputeBufferParam(m_CS, m_kernelDownsweep, k_bSortPayload, srcPayloadBuffer);
+                    cmd.SetComputeBufferParam(m_CS, m_kernelDownsweep, k_bAlt, dstKeyBuffer);
+                    cmd.SetComputeBufferParam(m_CS, m_kernelDownsweep, k_bAltPayload, dstPayloadBuffer);
+                    cmd.DispatchCompute(m_CS, m_kernelDownsweep, (int)threadBlocks, 1, 1);
+
+                    // Swap
+                    (srcKeyBuffer, dstKeyBuffer) = (dstKeyBuffer, srcKeyBuffer);
+                    (srcPayloadBuffer, dstPayloadBuffer) = (dstPayloadBuffer, srcPayloadBuffer);
+                }
             }
 
             cmd.SetComputeIntParam(m_CS, k_eNumKeys, (int)numKeys);

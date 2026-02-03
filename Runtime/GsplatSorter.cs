@@ -137,26 +137,8 @@ namespace Gsplat
             DispatchSort(m_commandBuffer, camera);
         }
 
-        private int i = 0;
-
         public void DispatchSort(CommandBuffer cmd, Camera camera)
         {
-            if (GsplatSettings.Instance.SortPass == 2)
-            {
-                return;
-            }
-
-            if (GsplatSettings.Instance.SortPass == 1)
-            {
-                // if (i != 0)
-                // {
-                //     i--;
-                //     return;
-                // }
-                // i = 15;
-            }
-
-
             foreach (var gs in m_activeGsplats)
             {
                 var res = (Resource)gs.SorterResource;

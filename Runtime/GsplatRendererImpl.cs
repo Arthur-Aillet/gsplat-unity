@@ -57,7 +57,8 @@ namespace Gsplat
                     GsplatUtils.SHBandsToCoefficientCount(SHBands) * (int)splatCount,
                     System.Runtime.InteropServices.Marshal.SizeOf(typeof(Vector3)));
             OrderBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)splatCount, sizeof(uint));
-            VertexBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)splatCount, 40);
+            VertexBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)splatCount, 36
+            );
 
             SorterResource = GsplatSorter.Instance.CreateSorterResource(splatCount, PackedSplatsBuffer, OrderBuffer, VertexBuffer);
         }

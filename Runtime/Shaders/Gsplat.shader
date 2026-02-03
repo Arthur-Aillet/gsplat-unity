@@ -33,9 +33,10 @@ Shader "Gsplat/Standard"
             #endif
 
             struct SplatViewData {
-                float4 pos;
+                float3 pos;
+                half2 rg;
                 float2 axis1, axis2;
-                half4 color; // 4xFP16
+                half2 ba;
             };
 
             int _SplatCount;
@@ -104,7 +105,7 @@ Shader "Gsplat/Standard"
 
                 //float4 centerClipPos = view.pos;
 
-                float4 centerClipPos = mul(UNITY_MATRIX_VP, view.pos);
+                float4 centerClipPos = mul(UNITY_MATRIX_VP, float4(view.pos, 1));
 
                 bool behindCam = centerClipPos.w <= 0;
                 if (behindCam)
@@ -113,7 +114,7 @@ Shader "Gsplat/Standard"
                     return o;
                 }
 
-                o.color = view.color;
+                o.color = half4(view.rg, view.ba);
 
                 uint idx = vtxID;
 
