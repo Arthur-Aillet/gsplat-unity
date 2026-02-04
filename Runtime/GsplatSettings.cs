@@ -66,27 +66,22 @@ namespace Gsplat
 
         void CreateMeshInstance()
         {
-            var meshPositions = new Vector3[4 * SplatInstanceSize];
-            var meshIndices = new int[6 * SplatInstanceSize];
+            var meshPositions = new Vector3[3 * SplatInstanceSize];
             for (uint i = 0; i < SplatInstanceSize; ++i)
             {
                 unsafe
                 {
-                    meshPositions[i * 4] = new Vector3(-1, -1, *(float*)&i);
-                    meshPositions[i * 4 + 1] = new Vector3(1, -1, *(float*)&i);
-                    meshPositions[i * 4 + 2] = new Vector3(-1, 1, *(float*)&i);
-                    meshPositions[i * 4 + 3] = new Vector3(1, 1, *(float*)&i);
+                    meshPositions[i * 3] = new Vector3(1.73f, -1, *(float*)&i);
+                    meshPositions[i * 3 + 1] = new Vector3(-1.73f, -1, *(float*)&i);
+                    meshPositions[i * 3 + 2] = new Vector3(0, 2, *(float*)&i);
                 }
 
-                int b = (int)i * 4;
-                Array.Copy(new[] { 0 + b, 1 + b, 2 + b, 1 + b, 3 + b, 2 + b }, 0, meshIndices, i * 6, 6);
             }
 
             Mesh = new Mesh
             {
                 name = "GsplatMeshInstance",
                 vertices = meshPositions,
-                triangles = meshIndices,
                 hideFlags = HideFlags.HideAndDontSave
             };
         }

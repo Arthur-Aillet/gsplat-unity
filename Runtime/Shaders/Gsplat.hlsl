@@ -4,13 +4,6 @@
 // Copyright (c) 2025 Yize Wu
 // SPDX-License-Identifier: MIT
 
-struct SplatSource
-{
-    uint order;
-    uint id;
-    float2 cornerUV;
-};
-
 struct SplatCenter
 {
     float3 view;

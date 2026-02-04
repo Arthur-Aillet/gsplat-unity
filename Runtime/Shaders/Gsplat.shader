@@ -36,15 +36,6 @@ Shader "Gsplat/Standard"
             StructuredBuffer<float3> _SHBuffer;
             #endif
 
-            struct appdata
-            {
-                float4 vertex : POSITION;
-                #if !defined(UNITY_INSTANCING_ENABLED) && !defined(UNITY_PROCEDURAL_INSTANCING_ENABLED) && !defined(UNITY_STEREO_INSTANCING_ENABLED)
-                uint instanceID : SV_InstanceID;
-                #endif
-                UNITY_VERTEX_INPUT_INSTANCE_ID
-            };
-
             bool InitCenter(float3 modelCenter, out SplatCenter center)
             {
                 float4x4 modelView = mul(UNITY_MATRIX_V, _MATRIX_M);
@@ -108,7 +99,7 @@ Shader "Gsplat/Standard"
                 float3 dir = normalize(mul(center.view, (float3x3)center.modelView));
                 float3 sh[SH_COEFFS];
                 for (int i = 0; i < SH_COEFFS; i++)
-                    sh[i] = _SHBuffer[source.id * SH_COEFFS + i];
+                    sh[i] = _SHBuffer[instID * SH_COEFFS + i];
                 color.rgb += EvalSH(sh, dir);
                 #endif
 

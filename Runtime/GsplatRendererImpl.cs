@@ -110,7 +110,7 @@ namespace Gsplat
 
 
             Graphics.RenderPrimitives(rp, MeshTopology.Triangles, 3, (int)splatCount);
-            // Graphics.RenderMeshPrimitives(rp, GsplatSettings.Instance.Mesh, 0,
+            //Graphics.RenderMeshPrimitives(rp, GsplatSettings.Instance.Mesh, 0,
             //     Mathf.CeilToInt(splatCount / (float)GsplatSettings.Instance.SplatInstanceSize));
         }
     }
