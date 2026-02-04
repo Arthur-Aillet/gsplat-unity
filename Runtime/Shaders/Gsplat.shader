@@ -70,6 +70,8 @@ Shader "Gsplat/Standard"
                 UNITY_VERTEX_OUTPUT_STEREO
             };
 
+            static const float2 lookupUV[3] = { float2(1.73, -1), float2(-1.73, -1), float2(0, 2) };
+
             v2f vert(uint vtxID : SV_VertexID, uint instID : SV_InstanceID)
             {
                 v2f o;
@@ -80,13 +82,7 @@ Shader "Gsplat/Standard"
                 uint orderedIndex = _OrderBuffer[instID];
                 uint4 packedSplat = _PackedSplatsBuffer[orderedIndex];
 
-                float2 uv;
-
-                switch (vtxID) {
-                    case 0: uv = float2(1.73, -1); break;
-                    case 1: uv = float2(-1.73, -1); break;
-                    case 2: uv = float2(0, 2); break;
-                }
+                float2 uv = lookupUV[vtxID];
 
                 float3 modelCenter, scale;
                 float4 color, quat;
@@ -128,15 +124,11 @@ Shader "Gsplat/Standard"
             {
                 float A = dot(i.uv, i.uv);
 
-                #ifdef SHADER_API_DESKTOP
                 if (A > 1.0) discard;
-                #endif
 
                 float alpha = exp(-A * 4.0) * i.color.a;
 
-                #ifdef SHADER_API_DESKTOP
                 if (alpha < 1.0 / 255.0) discard;
-                #endif
 
                 if (_GammaToLinear)
                     return float4(GammaToLinearSpace(i.color.rgb) * alpha, alpha);
