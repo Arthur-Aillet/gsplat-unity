@@ -67,6 +67,7 @@ namespace Gsplat
         void CreateMeshInstance()
         {
             var meshPositions = new Vector3[3 * SplatInstanceSize];
+            var meshIndices = new int[3 * SplatInstanceSize];
             for (uint i = 0; i < SplatInstanceSize; ++i)
             {
                 unsafe
@@ -76,12 +77,15 @@ namespace Gsplat
                     meshPositions[i * 3 + 2] = new Vector3(0, 2, *(float*)&i);
                 }
 
+                int b = (int)i * 3;
+                Array.Copy(new[] { 0 + b, 1 + b, 2 + b }, 0, meshIndices, i * 3, 3);
             }
 
             Mesh = new Mesh
             {
                 name = "GsplatMeshInstance",
                 vertices = meshPositions,
+                triangles = meshIndices,
                 hideFlags = HideFlags.HideAndDontSave
             };
         }

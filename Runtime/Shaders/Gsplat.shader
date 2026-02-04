@@ -36,6 +36,31 @@ Shader "Gsplat/Standard"
             StructuredBuffer<float3> _SHBuffer;
             #endif
 
+            struct appdata
+            {
+                float4 vertex : POSITION;
+                #if !defined(UNITY_INSTANCING_ENABLED) && !defined(UNITY_PROCEDURAL_INSTANCING_ENABLED) && !defined(UNITY_STEREO_INSTANCING_ENABLED)
+                uint instanceID : SV_InstanceID;
+                #endif
+                UNITY_VERTEX_INPUT_INSTANCE_ID
+            };
+
+            bool InitSource(appdata v, out SplatSource source)
+            {
+                #if !defined(UNITY_INSTANCING_ENABLED) && !defined(UNITY_PROCEDURAL_INSTANCING_ENABLED) && !defined(UNITY_STEREO_INSTANCING_ENABLED)
+                source.order = v.instanceID * _SplatInstanceSize + asuint(v.vertex.z);
+                #else
+                source.order = unity_InstanceID * _SplatInstanceSize + asuint(v.vertex.z);
+                #endif
+
+                if (source.order >= _SplatCount)
+                    return false;
+
+                source.id = _OrderBuffer[source.order];
+                source.cornerUV = float2(v.vertex.x, v.vertex.y);
+                return true;
+            }
+
             bool InitCenter(float3 modelCenter, out SplatCenter center)
             {
                 float4x4 modelView = mul(UNITY_MATRIX_V, _MATRIX_M);
@@ -61,19 +86,21 @@ Shader "Gsplat/Standard"
                 UNITY_VERTEX_OUTPUT_STEREO
             };
 
-            static const float2 lookupUV[3] = { float2(1.73, -1), float2(-1.73, -1), float2(0, 2) };
-
-            v2f vert(uint vtxID : SV_VertexID, uint instID : SV_InstanceID)
+            v2f vert(appdata v)
             {
                 v2f o;
                 UNITY_SETUP_INSTANCE_ID(v);
                 UNITY_INITIALIZE_OUTPUT(v2f, o);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
 
-                uint orderedIndex = _OrderBuffer[instID];
-                uint4 packedSplat = _PackedSplatsBuffer[orderedIndex];
+                SplatSource source;
+                if (!InitSource(v, source))
+                {
+                    o.vertex = discardVec;
+                    return o;
+                }
 
-                float2 uv = lookupUV[vtxID];
+                uint4 packedSplat = _PackedSplatsBuffer[source.id];
 
                 float3 modelCenter, scale;
                 float4 color, quat;
@@ -88,7 +115,7 @@ Shader "Gsplat/Standard"
 
                 SplatCovariance cov = CalcCovariance(quat, scale);
                 SplatCorner corner;
-                if (!InitCorner(uv, cov, center, corner))
+                if (!InitCorner(source, cov, center, corner))
                 {
                     o.vertex = discardVec;
                     return o;
@@ -99,7 +126,7 @@ Shader "Gsplat/Standard"
                 float3 dir = normalize(mul(center.view, (float3x3)center.modelView));
                 float3 sh[SH_COEFFS];
                 for (int i = 0; i < SH_COEFFS; i++)
-                    sh[i] = _SHBuffer[instID * SH_COEFFS + i];
+                    sh[i] = _SHBuffer[source.id * SH_COEFFS + i];
                 color.rgb += EvalSH(sh, dir);
                 #endif
 
