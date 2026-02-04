@@ -77,7 +77,7 @@ SplatCovariance CalcCovariance(float4 quat, float3 scale)
 }
 
 // calculate the clip-space offset from the center for this gaussian
-bool InitCorner(SplatSource source, SplatCovariance covariance, SplatCenter center, out SplatCorner corner)
+bool InitCorner(float2 uv, SplatCovariance covariance, SplatCenter center, out SplatCorner corner)
 {
     float3 covA = covariance.covA;
     float3 covB = covariance.covB;
@@ -144,8 +144,8 @@ bool InitCorner(SplatSource source, SplatCovariance covariance, SplatCenter cent
     float2 v1 = l1 * diagonalVector;
     float2 v2 = l2 * float2(diagonalVector.y, -diagonalVector.x);
 
-    corner.offset = (source.cornerUV.x * v1 + source.cornerUV.y * v2) * c;
-    corner.uv = source.cornerUV;
+    corner.offset = (uv.x * v1 + uv.y * v2) * c;
+    corner.uv = uv;
 
     return true;
 }
