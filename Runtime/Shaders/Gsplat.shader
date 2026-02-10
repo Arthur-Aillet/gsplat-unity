@@ -27,6 +27,7 @@ Shader "Gsplat/Standard"
             #include "UnityCG.cginc"
             #include "Gsplat.hlsl"
             bool _GammaToLinear;
+            float _SizeThreshold;
             int _SplatCount;
             int _SplatInstanceSize;
             int _SHDegree;
@@ -142,7 +143,7 @@ Shader "Gsplat/Standard"
 
                 ClipCorner(corner, color.w);
 
-                o.vertex = center.proj + float4(corner.offset.x, _ProjectionParams.x * corner.offset.y, 0, 0);
+                o.vertex = center.proj + float4(corner.offset.x, _ProjectionParams.x * corner.offset.y, 0, 0) * _SizeThreshold;
                 o.color = float4(max(color.rgb, float3(0, 0, 0)), color.a);
                 o.uv = corner.uv;
                 return o;
@@ -152,7 +153,11 @@ Shader "Gsplat/Standard"
             {
                 float A = dot(i.uv, i.uv);
                 if (A > 1.0) discard;
-                float alpha = exp(-A * 4.0) * i.color.a;
+
+                float falloff = -exp((A - 1.16 * _SizeThreshold) * 25);
+                float alpha = exp(-A * 4.0) + falloff;
+                alpha *= i.color.a;
+
                 if (alpha < 1.0 / 255.0) discard;
                 if (_GammaToLinear)
                     return float4(GammaToLinearSpace(i.color.rgb) * alpha, alpha);
