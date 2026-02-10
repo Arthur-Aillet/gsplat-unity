@@ -28,6 +28,9 @@ Shader "Gsplat/Standard"
             #include "Gsplat.hlsl"
             bool _GammaToLinear;
             float _SizeThreshold;
+            float _CullArea;
+            float _FrustrumMultiplier;
+            float _AlphaCulling;
             int _SplatCount;
             int _SplatInstanceSize;
             float4x4 _MATRIX_M;
@@ -74,11 +77,17 @@ Shader "Gsplat/Standard"
                 uint orderedIndex = _OrderBuffer[instID];
                 uint4 packedSplat = _PackedSplatsBuffer[orderedIndex];
 
-                float2 uv = lookupUV[vtxID];
+                float2 uv = lookupUV[vtxID] * _SizeThreshold;
 
                 float3 modelCenter, scale;
                 float4 color, quat;
                 UpackSplat(packedSplat, color, modelCenter, scale, quat);
+
+                if (color.a < _AlphaCulling)
+                {
+                    o.vertex = discardVec;
+                    return o;
+                }
 
                 SplatCenter center;
                 if (!InitCenter(modelCenter, center))
@@ -89,7 +98,7 @@ Shader "Gsplat/Standard"
 
                 SplatCovariance cov = CalcCovariance(quat, scale);
                 SplatCorner corner;
-                if (!InitCorner(uv, cov, center, corner))
+                if (!InitCorner(uv, cov, center, corner, _CullArea, _FrustrumMultiplier))
                 {
                     o.vertex = discardVec;
                     return o;
@@ -106,7 +115,7 @@ Shader "Gsplat/Standard"
 
                 ClipCorner(corner, color.w);
 
-                o.vertex = center.proj + float4(corner.offset.x, _ProjectionParams.x * corner.offset.y, 0, 0) * _SizeThreshold;
+                o.vertex = center.proj + float4(corner.offset.x, _ProjectionParams.x * corner.offset.y, 0, 0);
                 //o.vertex = center.proj + float4(corner.offset.x, _ProjectionParams.x * corner.offset.y, 0, 0);
                 o.color = color;
                 o.uv = corner.uv;
@@ -121,7 +130,7 @@ Shader "Gsplat/Standard"
 
                 //float alpha = exp(-A * 4.0) * i.color.a;
 
-                float falloff = -exp((A - 1.16 * _SizeThreshold) * 25);
+                float falloff = -exp((A - 1.0 * _SizeThreshold) * 25);
                 float alpha = exp(-A * 4.0) + falloff;
                 alpha *= i.color.a;
 
