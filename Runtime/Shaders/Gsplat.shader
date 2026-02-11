@@ -26,6 +26,7 @@ Shader "Gsplat/Standard"
 
             #include "UnityCG.cginc"
             #include "Gsplat.hlsl"
+
             bool _GammaToLinear;
             float _SizeThreshold;
             float _CullArea;
@@ -36,6 +37,17 @@ Shader "Gsplat/Standard"
             float4x4 _MATRIX_M;
             StructuredBuffer<uint> _OrderBuffer;
             StructuredBuffer<uint4> _PackedSplatsBuffer;
+
+            struct GaussianCutoutShaderData
+            {
+                float4x4 mat;
+                uint typeAndFlags;
+            };
+
+            uint _SplatCutoutsCount;
+            StructuredBuffer<GaussianCutoutShaderData> _SplatCutouts;
+            #include "GsplatCutout.hlsl"
+
             #ifndef SH_BANDS_0
             StructuredBuffer<float3> _SHBuffer;
             #endif
@@ -121,7 +133,7 @@ Shader "Gsplat/Standard"
                 float4 color, quat;
                 UpackSplat(packedSplat, color, modelCenter, scale, quat);
 
-                if (color.a < _AlphaCulling)
+                if (color.a < _AlphaCulling || IsSplatCut(modelCenter))
                 {
                     o.vertex = discardVec;
                     return o;

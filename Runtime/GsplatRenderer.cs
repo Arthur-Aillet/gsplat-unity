@@ -105,8 +105,10 @@ namespace Gsplat
                 }
             }
 
+            var cutouts = transform.GetComponentsInChildren<GsplatCutout>(includeInactive: false);
+
             if (Valid)
-                m_renderer.Render(SplatCount, transform, GsplatAsset.Bounds,
+                m_renderer.Render(SplatCount, cutouts, transform, GsplatAsset.Bounds,
                     gameObject.layer, GammaToLinear, SizeTreshold, CullArea, FrustrumMultiplier, AlphaCulling, SHDegree);
         }
     }
