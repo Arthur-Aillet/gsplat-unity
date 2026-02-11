@@ -21,7 +21,6 @@ namespace Gsplat
 
         GsplatAsset m_prevAsset;
         GsplatRendererImpl m_renderer;
-        public GsplatCutout[] m_Cutouts;
 
         public bool Valid => RenderBeforeUploadComplete ? SplatCount > 0 : SplatCount == GsplatAsset.SplatCount;
         public uint SplatCount => GsplatAsset ? GsplatAsset.SplatCount - m_pendingSplatCount : 0;
@@ -101,9 +100,12 @@ namespace Gsplat
                 }
             }
 
+            var cutouts = transform.GetComponentsInChildren<GsplatCutout>(includeInactive: false);
+
             if (Valid)
-                m_renderer.Render(SplatCount, transform, GsplatAsset.Bounds,
+                m_renderer.Render(SplatCount, cutouts, transform, GsplatAsset.Bounds,
                     gameObject.layer, GammaToLinear, SHDegree);
+
         }
     }
 }

@@ -5,8 +5,7 @@
 // Copyright (c) 2026 Arthur Aillet
 // SPDX-License-Identifier: MIT
 
-using System;
-using System.Linq;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEditor;
 using UnityEngine;
 
@@ -22,40 +21,22 @@ namespace Gsplat
 
         public Type m_Type = Type.Ellipsoid;
         public bool m_Invert = false;
-        [HideInInspector] public bool m_disconnected;
 
-        public struct ShaderData // match GaussianCutoutShaderData in CS
+        public static int ShaderDataSize { get { return UnsafeUtility.SizeOf<ShaderData>(); } }
+
+        public struct ShaderData
         {
             public Matrix4x4 matrix;
             public uint typeAndFlags;
         }
 
-        void OnValidate()
-        {
-            Transform currentTransform = transform;
-
-            while (currentTransform.parent != null)
-            {
-                if (currentTransform.parent.TryGetComponent<GsplatRenderer>(out var renderer))
-                {
-                    renderer.m_Cutouts ??= Array.Empty<GsplatCutout>();
-                    ArrayUtility.Add(ref renderer.m_Cutouts, this);
-                    m_disconnected = false;
-                    return;
-                }
-                currentTransform = currentTransform.parent.transform;
-            }
-            m_disconnected = true;
-        }
-
-        public static ShaderData GetShaderData(GsplatCutout self, Matrix4x4 rendererMatrix)
+        public ShaderData GetShaderData(Matrix4x4 rendererMatrix)
         {
             ShaderData sd = default;
-            if (self && self.isActiveAndEnabled)
+            if (isActiveAndEnabled)
             {
-                var tr = self.transform;
-                sd.matrix = tr.worldToLocalMatrix * rendererMatrix;
-                sd.typeAndFlags = ((uint)self.m_Type) | (self.m_Invert ? 0x100u : 0u);
+                sd.matrix = transform.worldToLocalMatrix * rendererMatrix;
+                sd.typeAndFlags = ((uint)m_Type) | (m_Invert ? 0x100u : 0u);
             } else
             {
                 sd.typeAndFlags = ~0u;
@@ -68,7 +49,7 @@ namespace Gsplat
         {
             Gizmos.matrix = transform.localToWorldMatrix;
             Color color;
-            if (m_disconnected)
+            if (transform.parent?.GetComponent<GsplatRenderer>() == null)
                 color = Color.red;
             else
                 color = Color.magenta;
@@ -85,7 +66,7 @@ namespace Gsplat
                     var activeSplat = activeGo.GetComponent<GsplatRenderer>();
                     if (activeSplat != null)
                     {
-                        if (activeSplat.m_Cutouts != null && activeSplat.m_Cutouts.Contains(this))
+                        if (activeSplat.transform == transform.parent)
                             color.a = 0.5f;
                     }
                 }

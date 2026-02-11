@@ -13,11 +13,11 @@ namespace Gsplat.Editor
         {
             DrawDefaultInspector();
 
-            var cutout = target as GsplatCutout;
+            var cutout = target as GameObject;
             if (!cutout)
                 return;
 
-            if (cutout.m_disconnected)
+            if (cutout.transform.parent.GetComponent<GsplatRenderer>() == null)
             {
                 EditorGUI.indentLevel++;
                 GUI.contentColor = Color.softRed;

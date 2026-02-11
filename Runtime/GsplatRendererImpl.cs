@@ -1,6 +1,8 @@
 ﻿// Copyright (c) 2025 Yize Wu
 // SPDX-License-Identifier: MIT
 
+using System;
+using Unity.Collections;
 using UnityEngine;
 
 namespace Gsplat
@@ -11,9 +13,10 @@ namespace Gsplat
         public byte SHBands { get; private set; }
 
         MaterialPropertyBlock m_propertyBlock;
+        public GraphicsBuffer OrderBuffer { get; private set; }
         public GraphicsBuffer PackedSplatsBuffer { get; private set; }
         public GraphicsBuffer SHBuffer { get; private set; }
-        public GraphicsBuffer OrderBuffer { get; private set; }
+        public GraphicsBuffer CutoutsBuffer { get; private set; }
         public ISorterResource SorterResource { get; private set; }
 
         public bool Valid =>
@@ -23,9 +26,11 @@ namespace Gsplat
         static readonly int k_orderBuffer = Shader.PropertyToID("_OrderBuffer");
         static readonly int k_packedSplatsBuffer = Shader.PropertyToID("_PackedSplatsBuffer");
         static readonly int k_shBuffer = Shader.PropertyToID("_SHBuffer");
+        static readonly int k_cutoutsBuffer = Shader.PropertyToID("_SplatCutouts");
         static readonly int k_matrixM = Shader.PropertyToID("_MATRIX_M");
-        static readonly int k_splatInstanceSize = Shader.PropertyToID("_SplatInstanceSize");
         static readonly int k_splatCount = Shader.PropertyToID("_SplatCount");
+        static readonly int k_splatCutoutsCount = Shader.PropertyToID("_SplatCutoutsCount");
+        static readonly int k_splatInstanceSize = Shader.PropertyToID("_SplatInstanceSize");
         static readonly int k_gammaToLinear = Shader.PropertyToID("_GammaToLinear");
         static readonly int k_shDegree = Shader.PropertyToID("_SHDegree");
 
@@ -57,6 +62,7 @@ namespace Gsplat
                     GsplatUtils.SHBandsToCoefficientCount(SHBands) * (int)splatCount,
                     System.Runtime.InteropServices.Marshal.SizeOf(typeof(Vector3)));
             OrderBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)splatCount, sizeof(uint));
+            CutoutsBuffer = null;
 
             SorterResource = GsplatSorter.Instance.CreateSorterResource(splatCount, PackedSplatsBuffer, OrderBuffer);
         }
@@ -75,31 +81,63 @@ namespace Gsplat
             PackedSplatsBuffer?.Dispose();
             SHBuffer?.Dispose();
             OrderBuffer?.Dispose();
+            CutoutsBuffer?.Dispose();
             SorterResource?.Dispose();
 
             PackedSplatsBuffer = null;
             SHBuffer = null;
             OrderBuffer = null;
+            CutoutsBuffer = null;
+        }
+
+        void UpdateCutoutsBuffer(GsplatCutout[] cutouts, Transform transform)
+        {
+            int numberOfCutouts = cutouts?.Length ?? 0;
+            int bufferSize = Math.Max(numberOfCutouts, 1);
+
+            if (CutoutsBuffer == null || CutoutsBuffer.count != bufferSize)
+            {
+                CutoutsBuffer?.Dispose();
+                CutoutsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, bufferSize, GsplatCutout.ShaderDataSize);
+            }
+
+            NativeArray<GsplatCutout.ShaderData> data = new(bufferSize, Allocator.Temp);
+            if (cutouts != null)
+            {
+                var matrix = transform.localToWorldMatrix;
+                for (var i = 0; i < cutouts.Length; ++i)
+                {
+                    data[i] = cutouts[i].GetShaderData(matrix);
+                }
+            }
+            CutoutsBuffer.SetData(data);
+            data.Dispose();
+
+            m_propertyBlock.SetBuffer(k_cutoutsBuffer, CutoutsBuffer);
+            m_propertyBlock.SetInteger(k_splatCutoutsCount, numberOfCutouts);
         }
 
         /// <summary>
         /// Render the splats.
         /// </summary>
         /// <param name="splatCount">It can be less than or equal to the SplatCount property.</param>
+        /// <param name="cutouts">List of cutout objects.</param>
         /// <param name="transform">Object transform.</param>
         /// <param name="localBounds">Bounding box in object space.</param>
         /// <param name="layer">Layer used for rendering.</param>
         /// <param name="gammaToLinear">Covert color space from Gamma to Linear.</param>
         /// <param name="shDegree">Order of SH coefficients used for rendering. The final value is capped by the SHBands property.</param>
-        public void Render(uint splatCount, Transform transform, Bounds localBounds, int layer,
+        public void Render(uint splatCount, GsplatCutout[] cutouts, Transform transform, Bounds localBounds, int layer,
             bool gammaToLinear = false, int shDegree = 3)
         {
             if (!Valid || !GsplatSettings.Instance.Valid || !GsplatSorter.Instance.Valid)
                 return;
 
+            UpdateCutoutsBuffer(cutouts, transform);
+
             m_propertyBlock.SetInteger(k_splatCount, (int)splatCount);
-            m_propertyBlock.SetInteger(k_gammaToLinear, gammaToLinear ? 1 : 0);
             m_propertyBlock.SetInteger(k_splatInstanceSize, (int)GsplatSettings.Instance.SplatInstanceSize);
+            m_propertyBlock.SetInteger(k_gammaToLinear, gammaToLinear ? 1 : 0);
             m_propertyBlock.SetInteger(k_shDegree, shDegree);
             m_propertyBlock.SetMatrix(k_matrixM, transform.localToWorldMatrix);
             var rp = new RenderParams(GsplatSettings.Instance.Materials[SHBands])
