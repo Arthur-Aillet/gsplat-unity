@@ -2,7 +2,7 @@
 // https://github.com/aras-p/UnityGaussianSplatting/blob/main/package/Runtime/GaussianCutout.cs
 // Copyright (c) 2023 Aras Pranckevičius
 // Modified by Arthur Aillet
-// Copyright (c) 2025 Arthur Aillet
+// Copyright (c) 2026 Arthur Aillet
 // SPDX-License-Identifier: MIT
 
 using System;
@@ -22,7 +22,7 @@ namespace Gsplat
 
         public Type m_Type = Type.Ellipsoid;
         public bool m_Invert = false;
-        private bool m_disconnected;
+        [HideInInspector] public bool m_disconnected;
 
         public struct ShaderData // match GaussianCutoutShaderData in CS
         {
