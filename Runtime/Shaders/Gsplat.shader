@@ -178,9 +178,7 @@ Shader "Gsplat/Standard"
 
                 if (A > 1.0) discard;
 
-                //float alpha = exp(-A * 4.0) * i.color.a;
-
-                float falloff = -exp((A - 1.0 * _SizeThreshold) * 25);
+                float falloff = -exp((A - _SizeThreshold * 1.16) * 25);
                 float alpha = exp(-A * 4.0) + falloff;
                 alpha *= i.color.a;
 
