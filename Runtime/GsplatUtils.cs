@@ -48,6 +48,8 @@ namespace Gsplat
             return (shBands + 1) * (shBands + 1) - 1;
         }
 
+        public static int DivRoundUp(int x, int y) => (x + y - 1) / y;
+
         public static Bounds CalcWorldBounds(Bounds localBounds, Transform transform)
         {
             var localCenter = localBounds.center;

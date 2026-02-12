@@ -12,12 +12,12 @@ namespace Gsplat
     {
         public Transform transform { get; }
         public uint SplatCount { get; }
-        public ISorterResource SorterResource { get; }
+        public IComputeManagerResource SorterResource { get; }
         public bool isActiveAndEnabled { get; }
         public bool Valid { get; }
     }
 
-    public interface ISorterResource
+    public interface IComputeManagerResource
     {
         public GraphicsBuffer PackedSplatsBuffer { get; }
         public GraphicsBuffer OrderBuffer { get; }
@@ -26,9 +26,9 @@ namespace Gsplat
 
     // some codes of this class originated from the GaussianSplatRenderSystem in aras-p/UnityGaussianSplatting by Aras Pranckevičius
     // https://github.com/aras-p/UnityGaussianSplatting/blob/main/package/Runtime/GaussianSplatRenderer.cs
-    public class GsplatSorter
+    public class GsplatComputeManager
     {
-        class Resource : ISorterResource
+        class Resource : IComputeManagerResource
         {
             public GraphicsBuffer PackedSplatsBuffer { get; }
             public GraphicsBuffer OrderBuffer { get; }
@@ -55,20 +55,27 @@ namespace Gsplat
             }
         }
 
-        public static GsplatSorter Instance => s_instance ??= new GsplatSorter();
-        static GsplatSorter s_instance;
+        public static GsplatComputeManager Instance => s_instance ??= new GsplatComputeManager();
+        static GsplatComputeManager s_instance;
+
         CommandBuffer m_commandBuffer;
         readonly HashSet<IGsplat> m_gsplats = new();
         readonly HashSet<Camera> m_camerasInjected = new();
         readonly List<IGsplat> m_activeGsplats = new();
         GsplatSortPass m_sortPass;
+        GsplatPrePass m_prePass;
         public const string k_PassName = "SortGsplats";
 
-        public bool Valid => m_sortPass is { Valid: true };
+        public bool Valid => m_sortPass is { Valid: true } && m_prePass is { Valid: true };
 
-        public void InitSorter(ComputeShader computeShader)
+        public void InitSorter(ComputeShader sortComputeShader)
         {
-            m_sortPass = computeShader ? new GsplatSortPass(computeShader) : null;
+            m_sortPass = sortComputeShader ? new GsplatSortPass(sortComputeShader) : null;
+        }
+
+        public void InitPrePass(ComputeShader prePassShader)
+        {
+            m_prePass = prePassShader ? new GsplatPrePass(prePassShader) : null;
         }
 
         public void RegisterGsplat(IGsplat gsplat)
@@ -133,6 +140,7 @@ namespace Gsplat
 
             InitialClearCmdBuffer(camera);
             DispatchSort(m_commandBuffer, camera);
+            DispatchPrePass(m_commandBuffer, camera);
         }
 
         public void DispatchSort(CommandBuffer cmd, Camera camera)
@@ -159,7 +167,16 @@ namespace Gsplat
             }
         }
 
-        public ISorterResource CreateSorterResource(uint count, GraphicsBuffer packedSplatsBuffer,
+        public void DispatchPrePass(CommandBuffer cmd, Camera camera)
+        {
+            foreach (var gs in m_activeGsplats)
+            {
+                var res = (Resource)gs.SorterResource;
+
+                m_prePass.Dispatch(cmd, res.OrderBuffer, gs.SplatCount);
+            }
+        }
+        public IComputeManagerResource CreateSorterResource(uint count, GraphicsBuffer packedSplatsBuffer,
             GraphicsBuffer orderBuffer)
         {
             return new Resource(count, packedSplatsBuffer, orderBuffer);

@@ -36,9 +36,12 @@ namespace Gsplat
                     settings.Shader =
                         AssetDatabase.LoadAssetAtPath<Shader>(GsplatUtils.k_PackagePath +
                                                               "Runtime/Shaders/Gsplat.shader");
-                    settings.ComputeShader =
+                    settings.SortComputeShader =
                         AssetDatabase.LoadAssetAtPath<ComputeShader>(GsplatUtils.k_PackagePath +
                                                                      "Runtime/Shaders/Gsplat.compute");
+                    settings.PrePassComputeShader =
+                        AssetDatabase.LoadAssetAtPath<ComputeShader>(GsplatUtils.k_PackagePath +
+                                                 "Runtime/Shaders/PreComputeSplats.compute");
                     settings.OnValidate();
                     AssetDatabase.CreateAsset(settings, k_gsplatSettingsPath);
                     AssetDatabase.SaveAssets();
@@ -51,7 +54,8 @@ namespace Gsplat
         }
 
         public Shader Shader;
-        public ComputeShader ComputeShader;
+        public ComputeShader SortComputeShader;
+        public ComputeShader PrePassComputeShader;
         public uint SplatInstanceSize = 128;
         public bool ShowImportErrors = true;
         public Material[] Materials { get; private set; }
@@ -60,7 +64,8 @@ namespace Gsplat
         public bool Valid => Materials?.Length != 0 && Mesh && SplatInstanceSize > 0;
 
         Shader m_prevShader;
-        ComputeShader m_prevComputeShader;
+        ComputeShader m_prevSortComputeShader;
+        ComputeShader m_prevPrePassComputeShader;
         uint m_prevSplatInstanceSize;
 
         void CreateMeshInstance()
@@ -118,10 +123,17 @@ namespace Gsplat
                 m_prevShader = Shader;
             }
 
-            if (ComputeShader != m_prevComputeShader)
+            if (SortComputeShader != m_prevSortComputeShader)
             {
-                GsplatSorter.Instance.InitSorter(ComputeShader);
-                m_prevComputeShader = ComputeShader;
+                GsplatComputeManager.Instance.InitSorter(SortComputeShader);
+                m_prevSortComputeShader = SortComputeShader;
+            }
+
+
+            if (PrePassComputeShader != m_prevPrePassComputeShader)
+            {
+                GsplatComputeManager.Instance.InitPrePass(PrePassComputeShader);
+                m_prevPrePassComputeShader = PrePassComputeShader;
             }
 
             if (SplatInstanceSize != m_prevSplatInstanceSize)
@@ -136,8 +148,11 @@ namespace Gsplat
         {
             CreateMaterials();
             m_prevShader = Shader;
-            GsplatSorter.Instance.InitSorter(ComputeShader);
-            m_prevComputeShader = ComputeShader;
+            GsplatComputeManager.Instance.InitSorter(SortComputeShader);
+            m_prevSortComputeShader = SortComputeShader;
+
+            GsplatComputeManager.Instance.InitPrePass(PrePassComputeShader);
+            m_prevPrePassComputeShader = PrePassComputeShader;
 
             CreateMeshInstance();
             m_prevSplatInstanceSize = SplatInstanceSize;
