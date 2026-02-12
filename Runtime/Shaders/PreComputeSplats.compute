@@ -5,8 +5,23 @@
 
 #pragma kernel PreCompute
 
+#include "Unpack.hlsl"
+
 uint _Count;
+float _AlphaCulling;
+
 RWStructuredBuffer<uint> _OrderBuffer;
+StructuredBuffer<uint4> _PackedSplatsBuffer;
+
+struct GaussianCutoutShaderData
+{
+    float4x4 mat;
+    uint typeAndFlags;
+};
+
+uint _SplatCutoutsCount;
+StructuredBuffer<GaussianCutoutShaderData> _SplatCutouts;
+#include "GsplatCutout.hlsl"
 
 [numthreads(GROUP_SIZE,1,1)]
 void PreCompute(uint3 id : SV_DispatchThreadID)
@@ -15,7 +30,18 @@ void PreCompute(uint3 id : SV_DispatchThreadID)
     if (idx >= _Count)
         return;
 
-    if (idx % 2 == 0) {
-        idx = _OrderBuffer[idx];
+    uint order = _OrderBuffer[idx];
+
+    uint4 packedSplat = _PackedSplatsBuffer[order];
+    uint word0 = packedSplat.x;
+    uint word1 = packedSplat.y;
+    uint word2 = packedSplat.z;
+
+    uint4 uColor = uint4(word0 & 0xFFU, (word0 >> 8u) & 0xFFU, (word0 >> 16u) & 0xFFU, (word0 >> 24u) & 0xFFU);
+    float3 modelCenter = float3(f16tof32(word1 & 0xFFFFU), f16tof32((word1 >> 16u) & 0xFFFFU), f16tof32(word2 & 0xFFFFU));
+
+    if (uColor.a < (_AlphaCulling * 255.0) || IsSplatCut(modelCenter))
+    {
+        _OrderBuffer[idx] = _Count + 1;
     }
 }

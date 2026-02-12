@@ -11,8 +11,9 @@ namespace Gsplat
     public interface IGsplat
     {
         public Transform transform { get; }
+        public GsplatCutout[] cutouts { get; }
         public uint SplatCount { get; }
-        public IComputeManagerResource SorterResource { get; }
+        public IComputeManagerResource Resource { get; }
         public bool isActiveAndEnabled { get; }
         public bool Valid { get; }
     }
@@ -32,8 +33,8 @@ namespace Gsplat
         {
             public GraphicsBuffer PackedSplatsBuffer { get; }
             public GraphicsBuffer OrderBuffer { get; }
-
             public GraphicsBuffer InputKeys { get; private set; }
+            public GraphicsBuffer CutoutsBuffer { get; set; }
             public GsplatSortPass.SupportResources Resources { get; }
             public bool Initialized;
 
@@ -42,6 +43,8 @@ namespace Gsplat
                 PackedSplatsBuffer = packedSplatsBuffer;
                 OrderBuffer = orderBuffer;
 
+                CutoutsBuffer = null;
+
                 InputKeys = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)count, sizeof(uint));
                 Resources = GsplatSortPass.SupportResources.Load(count);
             }
@@ -49,9 +52,11 @@ namespace Gsplat
             public void Dispose()
             {
                 InputKeys?.Dispose();
+                CutoutsBuffer?.Dispose();
                 Resources.Dispose();
 
                 InputKeys = null;
+                CutoutsBuffer = null;
             }
         }
 
@@ -147,12 +152,12 @@ namespace Gsplat
         {
             foreach (var gs in m_activeGsplats)
             {
-                var res = (Resource)gs.SorterResource;
-                if (!res.Initialized)
-                {
-                    m_sortPass.InitPayload(cmd, res.OrderBuffer, (uint)res.OrderBuffer.count);
-                    res.Initialized = true;
-                }
+                var res = (Resource)gs.Resource;
+                //if (!res.Initialized)
+                //{
+                m_sortPass.InitPayload(cmd, res.OrderBuffer, (uint)res.OrderBuffer.count);
+                //    res.Initialized = true;
+                //}
 
                 var sorterArgs = new GsplatSortPass.Args
                 {
@@ -171,9 +176,9 @@ namespace Gsplat
         {
             foreach (var gs in m_activeGsplats)
             {
-                var res = (Resource)gs.SorterResource;
+                var res = (Resource)gs.Resource;
 
-                m_prePass.Dispatch(cmd, res.OrderBuffer, gs.SplatCount);
+                m_prePass.Dispatch(cmd, res.OrderBuffer, res.CutoutsBuffer, res.PackedSplatsBuffer, gs);
             }
         }
         public IComputeManagerResource CreateSorterResource(uint count, GraphicsBuffer packedSplatsBuffer,
