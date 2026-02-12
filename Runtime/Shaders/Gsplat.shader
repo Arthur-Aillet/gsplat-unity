@@ -159,7 +159,7 @@ Shader "Gsplat/Standard"
                 float3 dir = normalize(mul(center.view, (float3x3)center.modelView));
                 float3 sh[SH_COEFFS];
                 for (int i = 0; i < SH_COEFFS; i++)
-                    sh[i] = _SHBuffer[instID * SH_COEFFS + i];
+                    sh[i] = _SHBuffer[source.id * SH_COEFFS + i];
                 color.rgb += EvalSH(sh, dir);
                 #endif
 

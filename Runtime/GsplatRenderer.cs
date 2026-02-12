@@ -29,7 +29,7 @@ namespace Gsplat
 
         public bool Valid => RenderBeforeUploadComplete ? SplatCount > 0 : SplatCount == GsplatAsset.SplatCount;
         public uint SplatCount => GsplatAsset ? GsplatAsset.SplatCount - m_pendingSplatCount : 0;
-        public ISorterResource SorterResource => m_renderer.SorterResource;
+        public IComputeManagerResource SorterResource => m_renderer.SorterResource;
 
         uint m_pendingSplatCount;
 
@@ -59,7 +59,7 @@ namespace Gsplat
 
         void OnEnable()
         {
-            GsplatSorter.Instance.RegisterGsplat(this);
+            GsplatComputeManager.Instance.RegisterGsplat(this);
             if (!GsplatAsset)
                 return;
             m_renderer = new GsplatRendererImpl(GsplatAsset.SplatCount, GsplatAsset.SHBands);
@@ -75,7 +75,7 @@ namespace Gsplat
 
         void OnDisable()
         {
-            GsplatSorter.Instance.UnregisterGsplat(this);
+            GsplatComputeManager.Instance.UnregisterGsplat(this);
             m_renderer?.Dispose();
             m_renderer = null;
         }

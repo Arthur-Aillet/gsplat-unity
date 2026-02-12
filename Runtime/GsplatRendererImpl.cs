@@ -17,7 +17,7 @@ namespace Gsplat
         public GraphicsBuffer PackedSplatsBuffer { get; private set; }
         public GraphicsBuffer SHBuffer { get; private set; }
         public GraphicsBuffer CutoutsBuffer { get; private set; }
-        public ISorterResource SorterResource { get; private set; }
+        public IComputeManagerResource SorterResource { get; private set; }
 
         public bool Valid =>
             PackedSplatsBuffer != null &&
@@ -67,7 +67,7 @@ namespace Gsplat
             OrderBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)splatCount, sizeof(uint));
             CutoutsBuffer = null;
 
-            SorterResource = GsplatSorter.Instance.CreateSorterResource(splatCount, PackedSplatsBuffer, OrderBuffer);
+            SorterResource = GsplatComputeManager.Instance.CreateSorterResource(splatCount, PackedSplatsBuffer, OrderBuffer);
         }
 
         void CreatePropertyBlock()
@@ -133,7 +133,7 @@ namespace Gsplat
         public void Render(uint splatCount, GsplatCutout[] cutouts, Transform transform, Bounds localBounds, int layer,
             bool gammaToLinear = false, float sizeTreshold = 1.0f, float cullArea = 2.0f, float frustrumMultiplier = 1.0f, float alphaCulling = 1.0f, int shDegree = 3)
         {
-            if (!Valid || !GsplatSettings.Instance.Valid || !GsplatSorter.Instance.Valid)
+            if (!Valid || !GsplatSettings.Instance.Valid || !GsplatComputeManager.Instance.Valid)
                 return;
 
             UpdateCutoutsBuffer(cutouts, transform);

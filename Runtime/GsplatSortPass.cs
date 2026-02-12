@@ -26,7 +26,7 @@ namespace Gsplat
         static readonly int k_bAltPayload = Shader.PropertyToID("b_altPayload");
 
         //The size of a threadblock partition in the sort
-        const uint k_deviceRadixSortPartitionSize = 3840;
+        const int k_deviceRadixSortPartitionSize = 3840;
 
         //The size of our radix in bits
         const uint k_deviceRadixSortBits = 8;
@@ -57,7 +57,7 @@ namespace Gsplat
             public static SupportResources Load(uint count)
             {
                 //This is threadBlocks * DEVICE_RADIX_SORT_RADIX
-                var scratchBufferSize = DivRoundUp(count, k_deviceRadixSortPartitionSize) * k_deviceRadixSortRadix;
+                var scratchBufferSize = GsplatUtils.DivRoundUp((int)count, k_deviceRadixSortPartitionSize) * k_deviceRadixSortRadix;
                 var reducedScratchBufferSize = k_deviceRadixSortRadix * k_deviceRadixSortPasses;
 
                 var target = GraphicsBuffer.Target.Structured;
@@ -143,15 +143,13 @@ namespace Gsplat
                 cs.DisableKeyword(vulkanKeyword);
         }
 
-        static uint DivRoundUp(uint x, uint y) => (x + y - 1) / y;
-
         // fill the payload buffer with 0, 1, 2, ..., count-1
         public void InitPayload(CommandBuffer cmd, GraphicsBuffer payloadBuffer, uint count)
         {
             Assert.IsTrue(Valid);
             cmd.SetComputeIntParam(m_CS, k_eNumKeys, (int)count);
             cmd.SetComputeBufferParam(m_CS, m_kernelInitPayload, k_bSortPayload, payloadBuffer);
-            cmd.DispatchCompute(m_CS, m_kernelInitPayload, (int)DivRoundUp(count, 1024), 1, 1);
+            cmd.DispatchCompute(m_CS, m_kernelInitPayload, GsplatUtils.DivRoundUp((int)count, 1024), 1, 1);
         }
 
         public void Dispatch(CommandBuffer cmd, Args args)
@@ -165,18 +163,18 @@ namespace Gsplat
             GraphicsBuffer dstPayloadBuffer = args.Resources.AltPayloadBuffer;
 
             uint numKeys = args.Count;
-            uint threadBlocks = DivRoundUp(args.Count, k_deviceRadixSortPartitionSize);
+            int threadBlocks = GsplatUtils.DivRoundUp((int)args.Count, k_deviceRadixSortPartitionSize);
 
             // Setup overall constants
             cmd.SetComputeIntParam(m_CS, k_eNumKeys, (int)numKeys);
-            cmd.SetComputeIntParam(m_CS, k_eThreadBlocks, (int)threadBlocks);
+            cmd.SetComputeIntParam(m_CS, k_eThreadBlocks, threadBlocks);
             cmd.SetComputeMatrixParam(m_CS, k_matrixMv, args.MatrixMv);
 
             //CalcDistance
             cmd.SetComputeBufferParam(m_CS, m_kernelCalcDistance, k_packedSplatsBuffer, packedSplatsBuffer);
             cmd.SetComputeBufferParam(m_CS, m_kernelCalcDistance, k_bSort, srcKeyBuffer);
             cmd.SetComputeBufferParam(m_CS, m_kernelCalcDistance, k_bSortPayload, srcPayloadBuffer);
-            cmd.DispatchCompute(m_CS, m_kernelCalcDistance, (int)DivRoundUp(args.Count, 1024), 1, 1);
+            cmd.DispatchCompute(m_CS, m_kernelCalcDistance, GsplatUtils.DivRoundUp((int)args.Count, 1024), 1, 1);
 
             //Set statically located buffers
             //Upsweep

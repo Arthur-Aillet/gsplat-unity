@@ -7,8 +7,11 @@
 
 #if GSPLAT_ENABLE_URP
 
+using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using System.Diagnostics;
+
 #if UNITY_6000_0_OR_NEWER
 using UnityEngine.Rendering.RenderGraphModule;
 #endif
@@ -27,20 +30,22 @@ namespace Gsplat
 
             public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
             {
-                using var builder = renderGraph.AddUnsafePass(GsplatSorter.k_PassName, out PassData passData);
+                using var builder = renderGraph.AddUnsafePass(GsplatComputeManager.k_PassName, out PassData passData);
                 passData.CameraData = frameData.Get<UniversalCameraData>();
                 builder.AllowPassCulling(false);
                 builder.SetRenderFunc(static (PassData data, UnsafeGraphContext context) =>
                 {
                     var commandBuffer = CommandBufferHelpers.GetNativeCommandBuffer(context.cmd);
-                    GsplatSorter.Instance.DispatchSort(commandBuffer, data.CameraData.camera);
+                    GsplatComputeManager.Instance.DispatchSort(commandBuffer, data.CameraData.camera);
+                    GsplatComputeManager.Instance.DispatchPrePass(commandBuffer, data.CameraData.camera);
                 });
             }
 #else
             public CommandBuffer CommandBuffer;
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
-                GsplatSorter.Instance.DispatchSort(CommandBuffer, renderingData.cameraData.camera);
+                GsplatComputeManager.Instance.DispatchSort(CommandBuffer, renderingData.cameraData.camera);
+                GsplatComputeManager.Instance.DispatchPrePass(commandBuffer, renderingData.CameraData.camera);
                 context.ExecuteCommandBuffer(CommandBuffer);
             }
 #endif
@@ -56,7 +61,7 @@ namespace Gsplat
 
         public override void OnCameraPreCull(ScriptableRenderer renderer, in CameraData cameraData)
         {
-            m_hasGsplats = GsplatSorter.Instance.GatherGsplatsForCamera(cameraData.camera);
+            m_hasGsplats = GsplatComputeManager.Instance.GatherGsplatsForCamera(cameraData.camera);
 #if !UNITY_6000_0_OR_NEWER
             m_pass.CommandBuffer ??= new CommandBuffer { name = "SortGsplats" };
             m_pass.CommandBuffer.Clear();
@@ -65,7 +70,7 @@ namespace Gsplat
 
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
-            if (GsplatSorter.Instance.Valid && GsplatSettings.Instance.Valid && m_hasGsplats)
+            if (GsplatComputeManager.Instance.Valid && GsplatSettings.Instance.Valid && m_hasGsplats)
                 renderer.EnqueuePass(m_pass);
         }
 
