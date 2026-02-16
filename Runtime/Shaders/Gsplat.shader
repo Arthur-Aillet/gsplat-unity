@@ -109,8 +109,6 @@ Shader "Gsplat/Standard"
                 UNITY_VERTEX_OUTPUT_STEREO
             };
 
-            //static const float2 lookupUV[3] = { float2(1.73, -1), float2(-1.73, -1), float2(0, 2) };
-
             v2f vert(appdata v)
             {
                 v2f o;
@@ -131,7 +129,7 @@ Shader "Gsplat/Standard"
 
                 float3 modelCenter, scale;
                 float4 color, quat;
-                UpackSplat(packedSplat, color, modelCenter, scale, quat);
+                UnpackSplat(packedSplat, color, modelCenter, scale, quat);
 
                 if (color.a < _AlphaCulling || IsSplatCut(modelCenter))
                 {
@@ -159,14 +157,13 @@ Shader "Gsplat/Standard"
                 float3 dir = normalize(mul(center.view, (float3x3)center.modelView));
                 float3 sh[SH_COEFFS];
                 for (int i = 0; i < SH_COEFFS; i++)
-                    sh[i] = _SHBuffer[instID * SH_COEFFS + i];
+                    sh[i] = _SHBuffer[source.id * SH_COEFFS + i];
                 color.rgb += EvalSH(sh, dir);
                 #endif
 
                 ClipCorner(corner, color.w);
 
                 o.vertex = center.proj + float4(corner.offset.x, _ProjectionParams.x * corner.offset.y, 0, 0);
-                //o.vertex = center.proj + float4(corner.offset.x, _ProjectionParams.x * corner.offset.y, 0, 0);
                 o.color = color;
                 o.uv = corner.uv;
                 return o;
