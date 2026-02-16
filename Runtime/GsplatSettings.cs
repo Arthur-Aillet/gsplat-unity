@@ -59,10 +59,10 @@ namespace Gsplat
         public uint SplatInstanceSize = 128;
         public bool ShowImportErrors = true;
         public int SortPass = 0;
-        public Material[] Materials { get; private set; }
+        public Material GsplatMaterial { get; private set; } = null;
         public Mesh Mesh { get; private set; }
 
-        public bool Valid => Materials?.Length != 0 && Mesh && SplatInstanceSize > 0;
+        public bool Valid => GsplatMaterial != null && Mesh && SplatInstanceSize > 0;
 
         Shader m_prevShader;
         ComputeShader m_prevSortComputeShader;
@@ -98,22 +98,16 @@ namespace Gsplat
 
         void CreateMaterials()
         {
-            if (Materials != null)
-                foreach (var mat in Materials)
-                    DestroyImmediate(mat);
+            if (GsplatMaterial != null)
+                DestroyImmediate(GsplatMaterial);
 
             if (!Shader)
             {
-                Materials = null;
+                GsplatMaterial = null;
                 return;
             }
 
-            Materials = new Material[4];
-            for (var i = 0; i < 4; ++i)
-            {
-                Materials[i] = new Material(Shader) { hideFlags = HideFlags.HideAndDontSave };
-                Materials[i].EnableKeyword($"SH_BANDS_{i}");
-            }
+            GsplatMaterial = new Material(Shader) { hideFlags = HideFlags.HideAndDontSave };
         }
 
         void OnValidate()

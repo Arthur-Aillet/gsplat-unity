@@ -22,25 +22,39 @@ Shader "Gsplat/Standard"
             #pragma vertex vert
             #pragma fragment frag
             #pragma require compute
-            #pragma multi_compile SH_BANDS_0 SH_BANDS_1 SH_BANDS_2 SH_BANDS_3
+            #pragma use_dxc
 
             #include "UnityCG.cginc"
-            #include "Gsplat.hlsl"
-            #include "Unpack.hlsl"
 
-            bool _GammaToLinear;
-            float _SizeThreshold;
-            float _CullArea;
-            float _FrustrumMultiplier;
-            int _SplatCount;
-            int _SplatInstanceSize;
-            float4x4 _MATRIX_M;
+            #include "GaussianSplatting.hlsl"
+
             StructuredBuffer<uint> _OrderBuffer;
-            StructuredBuffer<uint4> _PackedSplatsBuffer;
+            uint _SplatCount;
+            uint _SplatInstanceSize;
 
-            #ifndef SH_BANDS_0
-            StructuredBuffer<float3> _SHBuffer;
-            #endif
+            struct SplatSource
+            {
+                uint order;
+                uint id;
+                float2 cornerUV;
+            };
+
+            struct v2f
+            {
+                half4 col : COLOR0;
+                float2 pos : TEXCOORD0;
+                float4 vertex : SV_POSITION;
+                UNITY_VERTEX_OUTPUT_STEREO
+            };
+
+            struct SplatViewData {
+                float3 pos;
+                half2 rg;
+                float2 axis1, axis2;
+                half2 ba;
+            };
+
+            StructuredBuffer<SplatViewData> _SplatViewData;
 
             struct appdata
             {
@@ -49,13 +63,6 @@ Shader "Gsplat/Standard"
                 uint instanceID : SV_InstanceID;
                 #endif
                 UNITY_VERTEX_INPUT_INSTANCE_ID
-            };
-
-            struct SplatSource
-            {
-                uint order;
-                uint id;
-                float2 uv;
             };
 
             bool InitSource(appdata v, out SplatSource source)
@@ -70,40 +77,13 @@ Shader "Gsplat/Standard"
                     return false;
 
                 source.id = _OrderBuffer[source.order];
-                source.uv = float2(v.vertex.x, v.vertex.y);
+                source.cornerUV = float2(v.vertex.x, v.vertex.y);
                 return true;
             }
 
-            bool InitCenter(float3 modelCenter, out SplatCenter center)
+            v2f vert (appdata v)
             {
-                float4x4 modelView = mul(UNITY_MATRIX_V, _MATRIX_M);
-                float4 centerView = mul(modelView, float4(modelCenter, 1.0));
-                if (centerView.z > 0.0)
-                {
-                    return false;
-                }
-                float4 centerProj = mul(UNITY_MATRIX_P, centerView);
-                centerProj.z = clamp(centerProj.z, -abs(centerProj.w), abs(centerProj.w));
-                center.view = centerView.xyz / centerView.w;
-                center.proj = centerProj;
-                center.projMat00 = UNITY_MATRIX_P[0][0];
-                center.modelView = modelView;
-                return true;
-            }
-
-            struct v2f
-            {
-                float2 uv : TEXCOORD0;
-                float4 vertex : SV_POSITION;
-                float4 color: COLOR;
-                UNITY_VERTEX_OUTPUT_STEREO
-            };
-
-            //static const float2 lookupUV[3] = { float2(1.73, -1), float2(-1.73, -1), float2(0, 2) };
-
-            v2f vert(appdata v)
-            {
-                v2f o;
+                v2f o = (v2f)0;
                 UNITY_SETUP_INSTANCE_ID(v);
                 UNITY_INITIALIZE_OUTPUT(v2f, o);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
@@ -111,69 +91,46 @@ Shader "Gsplat/Standard"
                 SplatSource source;
                 if (!InitSource(v, source))
                 {
-                    o.vertex = discardVec;
+                    o.vertex = asfloat(0x7fc00000);
                     return o;
                 }
 
-                source.uv *=  _SizeThreshold;
+                SplatViewData view = _SplatViewData[source.id];
+                float4 centerClipPos = mul(UNITY_MATRIX_VP, float4(view.pos, 1));
 
-                uint4 packedSplat = _PackedSplatsBuffer[source.id];
-
-                float3 modelCenter, scale;
-                float4 color, quat;
-                UpackSplat(packedSplat, color, modelCenter, scale, quat);
-
-                SplatCenter center;
-                if (!InitCenter(modelCenter, center))
+                bool behindCam = centerClipPos.w <= 0;
+                if (behindCam)
                 {
-                    o.vertex = discardVec;
+                    o.vertex = asfloat(0x7fc00000); // NaN discards the primitive
                     return o;
                 }
 
-                SplatCovariance cov = CalcCovariance(quat, scale);
-                SplatCorner corner;
-                if (!InitCorner(source.uv, cov, center, corner, _CullArea, _FrustrumMultiplier))
-                {
-                    o.vertex = discardVec;
-                    return o;
-                }
+                o.col = half4(view.rg, view.ba);
 
-                #ifndef SH_BANDS_0
-                // calculate the model-space view direction
-                float3 dir = normalize(mul(center.view, (float3x3)center.modelView));
-                float3 sh[SH_COEFFS];
-                for (int i = 0; i < SH_COEFFS; i++)
-                    sh[i] = _SHBuffer[source.id * SH_COEFFS + i];
-                color.rgb += EvalSH(sh, dir);
-                #endif
+                float2 quadPos = source.cornerUV;
 
-                ClipCorner(corner, color.w);
+                o.pos = quadPos * 2;
 
-                o.vertex = center.proj + float4(corner.offset.x, _ProjectionParams.x * corner.offset.y, 0, 0);
-                //o.vertex = center.proj + float4(corner.offset.x, _ProjectionParams.x * corner.offset.y, 0, 0);
-                o.color = color;
-                o.uv = corner.uv;
+                float2 deltaScreenPos = (quadPos.x * view.axis1 + quadPos.y * view.axis2) * 2 / _ScreenParams.xy;
+                o.vertex = centerClipPos;
+                o.vertex.xy += deltaScreenPos * centerClipPos.w;
+                //FlipProjectionIfBackbuffer(o.vertex);
                 return o;
             }
 
-            float4 frag(v2f i) : SV_Target
+            half4 frag (v2f i) : SV_Target
             {
-                float A = dot(i.uv, i.uv);
+                float power = -dot(i.pos, i.pos);
+                half alpha = exp(power);
+                alpha = saturate(alpha * i.col.a);
 
-                if (A > 1.0) discard;
+                if (alpha < 1.0/255.0)
+                    discard;
 
-                float falloff = -exp((A - _SizeThreshold * 1.16) * 25);
-                float alpha = exp(-A * 4.0) + falloff;
-                alpha *= i.color.a;
-
-                if (alpha < 1.0 / 255.0) discard;
-
-                if (_GammaToLinear)
-                    return float4(GammaToLinearSpace(i.color.rgb) * alpha, alpha);
-                return float4(i.color.rgb * alpha, alpha);
+                half4 res = half4(i.col.rgb * alpha, alpha);
+                return res;
             }
             ENDHLSL
-
 
         }
     }

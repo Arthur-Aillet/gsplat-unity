@@ -44,8 +44,8 @@ namespace Gsplat
         void SetBufferData()
         {
             m_renderer.PackedSplatsBuffer.SetData(GsplatAsset.PackedSplats);
-            if (GsplatAsset.SHBands > 0)
-                m_renderer.SHBuffer.SetData(GsplatAsset.SHs);
+            //if (GsplatAsset.SHBands > 0)
+            //    m_renderer.SHBuffer.SetData(GsplatAsset.SHs);
         }
 
         void SetBufferDataAsync()
@@ -61,8 +61,8 @@ namespace Gsplat
             m_renderer.PackedSplatsBuffer.SetData(GsplatAsset.PackedSplats, offset, offset, count);
             if (GsplatAsset.SHBands <= 0) return;
             var coefficientCount = GsplatUtils.SHBandsToCoefficientCount(GsplatAsset.SHBands);
-            m_renderer.SHBuffer.SetData(GsplatAsset.SHs, coefficientCount * offset,
-                coefficientCount * offset, coefficientCount * count);
+            //m_renderer.SHBuffer.SetData(GsplatAsset.SHs, coefficientCount * offset,
+            //    coefficientCount * offset, coefficientCount * count);
         }
 
         void OnEnable()

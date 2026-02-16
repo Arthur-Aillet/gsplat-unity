@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 using System;
-using Unity.Collections;
 using UnityEngine;
 
 namespace Gsplat
@@ -15,25 +14,18 @@ namespace Gsplat
         MaterialPropertyBlock m_propertyBlock;
         public GraphicsBuffer OrderBuffer { get; private set; }
         public GraphicsBuffer PackedSplatsBuffer { get; private set; }
+        public GraphicsBuffer SplatViewDataBuffer { get; private set; }
         public GraphicsBuffer SHBuffer { get; private set; }
         public IComputeManagerResource Resource { get; private set; }
 
         public bool Valid =>
-            PackedSplatsBuffer != null &&
-            (SHBands == 0 || SHBuffer != null);
+            PackedSplatsBuffer != null;
 
         static readonly int k_orderBuffer = Shader.PropertyToID("_OrderBuffer");
-        static readonly int k_packedSplatsBuffer = Shader.PropertyToID("_PackedSplatsBuffer");
-        static readonly int k_shBuffer = Shader.PropertyToID("_SHBuffer");
-        static readonly int k_matrixM = Shader.PropertyToID("_MATRIX_M");
+        static readonly int k_splatsViewDataBuffer = Shader.PropertyToID("_SplatViewData");
         static readonly int k_splatCount = Shader.PropertyToID("_SplatCount");
-        static readonly int k_splatCutoutsCount = Shader.PropertyToID("_SplatCutoutsCount");
         static readonly int k_splatInstanceSize = Shader.PropertyToID("_SplatInstanceSize");
         static readonly int k_gammaToLinear = Shader.PropertyToID("_GammaToLinear");
-        static readonly int k_sizeTreshold = Shader.PropertyToID("_SizeThreshold");
-        static readonly int k_cullArea = Shader.PropertyToID("_CullArea");
-        static readonly int k_frustrumMultiplier = Shader.PropertyToID("_FrustrumMultiplier");
-        static readonly int k_alphaCulling = Shader.PropertyToID("_AlphaCulling");
 
         public GsplatRendererImpl(uint splatCount, byte shBands)
         {
@@ -58,35 +50,47 @@ namespace Gsplat
         {
             PackedSplatsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)splatCount,
                 System.Runtime.InteropServices.Marshal.SizeOf(typeof(uint)) * 4);
-            if (SHBands > 0)
-                SHBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
-                    GsplatUtils.SHBandsToCoefficientCount(SHBands) * (int)splatCount,
-                    System.Runtime.InteropServices.Marshal.SizeOf(typeof(Vector3)));
+            // if (SHBands > 0)
+            //     SHBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured,
+            //         GsplatUtils.SHBandsToCoefficientCount(SHBands) * (int)splatCount,
+            //         System.Runtime.InteropServices.Marshal.SizeOf(typeof(Vector3)));
             OrderBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)splatCount, sizeof(uint));
+            SplatViewDataBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)splatCount, 36);
 
-            Resource = GsplatComputeManager.Instance.CreateSorterResource(splatCount, PackedSplatsBuffer, OrderBuffer);
+            Resource = GsplatComputeManager.Instance.CreateSorterResource(splatCount, PackedSplatsBuffer, SplatViewDataBuffer, OrderBuffer);
         }
 
         void CreatePropertyBlock()
         {
             m_propertyBlock ??= new MaterialPropertyBlock();
-            m_propertyBlock.SetBuffer(k_packedSplatsBuffer, PackedSplatsBuffer);
+            m_propertyBlock.SetBuffer(k_splatsViewDataBuffer, SplatViewDataBuffer);
             m_propertyBlock.SetBuffer(k_orderBuffer, OrderBuffer);
-            if (SHBands > 0)
-                m_propertyBlock.SetBuffer(k_shBuffer, SHBuffer);
+            // if (SHBands > 0)
+            //     m_propertyBlock.SetBuffer(k_shBuffer, SHBuffer);
         }
 
         public void Dispose()
         {
             PackedSplatsBuffer?.Dispose();
-            SHBuffer?.Dispose();
+            //SHBuffer?.Dispose();
             OrderBuffer?.Dispose();
+            SplatViewDataBuffer?.Dispose();
             Resource?.Dispose();
 
             PackedSplatsBuffer = null;
-            SHBuffer = null;
+            //SHBuffer = null;
             OrderBuffer = null;
+            SplatViewDataBuffer = null;
         }
+
+
+        struct SplatViewData
+        {
+            public Vector4 pos;
+            public Vector2 axis1, axis2;
+            public Vector2 color; // 4xFP16
+        };
+
 
         /// <summary>
         /// Render the splats.
@@ -107,19 +111,19 @@ namespace Gsplat
             m_propertyBlock.SetInteger(k_splatCount, (int)splatCount);
             m_propertyBlock.SetInteger(k_splatInstanceSize, (int)GsplatSettings.Instance.SplatInstanceSize);
             m_propertyBlock.SetInteger(k_gammaToLinear, gammaToLinear ? 1 : 0);
-            m_propertyBlock.SetFloat(k_sizeTreshold, sizeTreshold);
-            m_propertyBlock.SetFloat(k_cullArea, cullArea);
-            m_propertyBlock.SetFloat(k_frustrumMultiplier, frustrumMultiplier);
-            m_propertyBlock.SetFloat(k_alphaCulling, alphaCulling / 255.0f);
-            m_propertyBlock.SetMatrix(k_matrixM, transform.localToWorldMatrix);
-            var rp = new RenderParams(GsplatSettings.Instance.Materials[Math.Min(SHBands, shDegree)])
+            // m_propertyBlock.SetFloat(k_sizeTreshold, sizeTreshold);
+            // m_propertyBlock.SetFloat(k_cullArea, cullArea);
+            // m_propertyBlock.SetFloat(k_frustrumMultiplier, frustrumMultiplier);
+            // m_propertyBlock.SetFloat(k_alphaCulling, alphaCulling / 255.0f);
+            // m_propertyBlock.SetMatrix(k_matrixM, transform.localToWorldMatrix);
+            var rp = new RenderParams(GsplatSettings.Instance.GsplatMaterial)
             {
                 worldBounds = GsplatUtils.CalcWorldBounds(localBounds, transform),
                 matProps = m_propertyBlock,
                 layer = layer
             };
 
-            //Graphics.RenderPrimitives(rp, MeshTopology.Triangles, 3, (int)splatCount);
+            //Graphics.RenderPrimitives(rp, MeshTopology.Triangles, 6, (int)splatCount);
             Graphics.RenderMeshPrimitives(rp, GsplatSettings.Instance.Mesh, 0,
                  Mathf.CeilToInt(splatCount / (float)GsplatSettings.Instance.SplatInstanceSize));
         }
