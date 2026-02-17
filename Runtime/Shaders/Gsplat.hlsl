@@ -4,13 +4,6 @@
 // Copyright (c) 2025 Yize Wu
 // SPDX-License-Identifier: MIT
 
-struct SplatSource
-{
-    uint order;
-    uint id;
-    float2 cornerUV;
-};
-
 struct SplatCenter
 {
     float3 view;
@@ -77,7 +70,7 @@ SplatCovariance CalcCovariance(float4 quat, float3 scale)
 }
 
 // calculate the clip-space offset from the center for this gaussian
-bool InitCorner(SplatSource source, SplatCovariance covariance, SplatCenter center, out SplatCorner corner)
+bool InitCorner(float2 uv, SplatCovariance covariance, SplatCenter center, out SplatCorner corner, float cullArea, float frustumMultiplier)
 {
     float3 covA = covariance.covA;
     float3 covB = covariance.covB;
@@ -131,11 +124,16 @@ bool InitCorner(SplatSource source, SplatCovariance covariance, SplatCenter cent
         return false;
     }
 
+    // early-out gaussians smaller than 2 pixels
+    if (l1 * l2 < cullArea) {
+        return false;
+    }
+
     float2 c = center.proj.ww / _ScreenParams.xy;
 
     // cull against frustum x/y axes
     float maxL = max(l1, l2);
-    if (any(abs(center.proj.xy) - float2(maxL, maxL) * c > center.proj.ww))
+    if (any(abs(center.proj.xy * frustumMultiplier) - float2(maxL, maxL) * c > center.proj.ww))
     {
         return false;
     }
@@ -144,8 +142,8 @@ bool InitCorner(SplatSource source, SplatCovariance covariance, SplatCenter cent
     float2 v1 = l1 * diagonalVector;
     float2 v2 = l2 * float2(diagonalVector.y, -diagonalVector.x);
 
-    corner.offset = (source.cornerUV.x * v1 + source.cornerUV.y * v2) * c;
-    corner.uv = source.cornerUV;
+    corner.offset = (uv.x * v1 + uv.y * v2) * c;
+    corner.uv = uv;
 
     return true;
 }
@@ -286,7 +284,7 @@ float4 DecodeQuatOctXyz88R8(uint encoded) {
 #define LN_SCALE_MIN -12.0
 #define LN_SCALE_MAX 9.0
 
-void UpackSplat(uint4 packedData, out float4 color, out float3 modelCenter, out float3 scale, out float4 quat) {
+void UnpackSplat(uint4 packedData, out float4 color, out float3 modelCenter, out float3 scale, out float4 quat) {
     uint word0 = packedData.x;
     uint word1 = packedData.y;
     uint word2 = packedData.z;

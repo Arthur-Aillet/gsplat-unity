@@ -25,6 +25,11 @@ namespace Gsplat
             }
         }
 
+        [Range(0.0f, 1f)] public float SizeTreshold = 1.0f;
+        [Range(2, 75)] public float CullArea = 2.0f;
+        [Range(1.0f, 1.2f)]
+        public float FrustrumMultiplier = 1.0f;
+        [Range(1.0f, 70.0f)] public float AlphaCulling = 1.0f;
         public bool GammaToLinear;
         public bool AsyncUpload;
 
@@ -141,9 +146,11 @@ namespace Gsplat
                 }
             }
 
+            var cutouts = transform.GetComponentsInChildren<GsplatCutout>(includeInactive: false);
+
             if (Valid)
-                m_renderer.Render(SplatCount, transform, GsplatAsset.Bounds,
-                    gameObject.layer, GammaToLinear);
+                m_renderer.Render(SplatCount, cutouts, transform, GsplatAsset.Bounds,
+                    gameObject.layer, GammaToLinear, SizeTreshold, CullArea, FrustrumMultiplier, AlphaCulling);
         }
     }
 }

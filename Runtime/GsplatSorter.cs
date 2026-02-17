@@ -135,7 +135,9 @@ namespace Gsplat
             DispatchSort(m_commandBuffer, camera);
         }
 
-        public void DispatchSort(CommandBuffer cmd, Camera camera)
+        public Vector3? camPos = null;
+        public Quaternion? camRot = null;
+        public void TrueDispatchSort(CommandBuffer cmd, Camera camera)
         {
             foreach (var gs in m_activeGsplats)
             {
@@ -156,6 +158,31 @@ namespace Gsplat
                     Resources = res.Resources
                 };
                 m_sortPass.Dispatch(cmd, sorterArgs);
+            }
+        }
+
+        public void DispatchSort(CommandBuffer cmd, Camera camera)
+        {
+            if (GsplatSettings.Instance.SortPass == 0)
+            {
+                TrueDispatchSort(cmd, camera);
+            } else if (GsplatSettings.Instance.SortPass == 1)
+            {
+                if (camPos == null)
+                {
+                    camPos = camera.transform.position;
+                    camRot = camera.transform.rotation;
+                    TrueDispatchSort(cmd, camera);
+                } else
+                {
+                    if ((camPos.Value - camera.transform.position).magnitude > .3f || Quaternion.Angle(camRot.Value, camera.transform.rotation) > 15.0f)
+                    {
+                        Debug.Log("SORT");
+                        camPos = camera.transform.position;
+                        camRot = camera.transform.rotation;
+                        TrueDispatchSort(cmd, camera);
+                    }
+                }
             }
         }
 
