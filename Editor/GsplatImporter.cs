@@ -148,8 +148,10 @@ namespace Gsplat.Editor
                     return;
                 }
 
-                if (shCoeffs > 0)
-                    gsplatAsset.SHs = new Vector3[plyInfo.VertexCount * shCoeffs];
+                gsplatAsset.PackedSH1 = new uint[plyInfo.VertexCount * 2];
+                gsplatAsset.PackedSH2 = new uint[plyInfo.VertexCount * 4];
+                gsplatAsset.PackedSH3 = new uint[plyInfo.VertexCount * 4];
+
                 gsplatAsset.PackedSplats = new uint[plyInfo.VertexCount * 4];
 
                 var buffer = new byte[plyInfo.PropertyCount * sizeof(float)];
@@ -165,12 +167,28 @@ namespace Gsplat.Editor
                     }
 
                     var properties = MemoryMarshal.Cast<byte, float>(buffer);
-                    for (int j = 0; j < shCoeffs; j++)
-                        gsplatAsset.SHs[i * shCoeffs + j] = new Vector3(
-                            properties[j + plyInfo.SHOffset],
-                            properties[j + plyInfo.SHOffset + shCoeffs],
-                            properties[j + plyInfo.SHOffset + shCoeffs * 2]);
 
+                    int shReadOffset = 0;
+                    for (int j = 0; j < gsplatAsset.SHBands; j++)
+                    {
+                        int bandSize = GsplatUtils.SHBandSize[j];
+                        float[] shBandData = new float[bandSize * 3]; // x3 for rgb
+                        for (int k = 0; k < bandSize; k++)
+                        {
+                            shBandData[k * 3] = properties[shReadOffset + k + plyInfo.SHOffset];
+                            shBandData[k * 3 + 1] = properties[shReadOffset + k + plyInfo.SHOffset + shCoeffs];
+                            shBandData[k * 3 + 2] = properties[shReadOffset + k + plyInfo.SHOffset + shCoeffs * 2];
+                        }
+
+                        if (j == 0)
+                            Array.Copy(GsplatPacker.PackSH1(shBandData), 0, gsplatAsset.PackedSH1, i * 2, 2);
+                        if (j == 1)
+                            Array.Copy(GsplatPacker.PackSH2(shBandData), 0, gsplatAsset.PackedSH2, i * 4, 4);
+                        if (j == 2)
+                            Array.Copy(GsplatPacker.PackSH3(shBandData), 0, gsplatAsset.PackedSH3, i * 4, 4);
+
+                        shReadOffset += bandSize;
+                    }
 
                     var color = new Vector4(
                         properties[plyInfo.ColorOffset],
