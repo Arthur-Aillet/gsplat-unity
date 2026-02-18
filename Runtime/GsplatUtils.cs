@@ -48,10 +48,7 @@ namespace Gsplat
             return (shBands + 1) * (shBands + 1) - 1;
         }
 
-        public static int SHBandsToCoefficientOffsetCount(byte shBands)
-        {
-            return SHBandsToCoefficientCount(shBands) - SHBandsToCoefficientCount((byte)(shBands - 1));
-        }
+        public static readonly int[] SHBandSize = { 3, 5, 7 };
 
         public static Bounds CalcWorldBounds(Bounds localBounds, Transform transform)
         {
