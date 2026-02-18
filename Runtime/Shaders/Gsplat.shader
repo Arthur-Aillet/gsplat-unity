@@ -29,24 +29,16 @@ Shader "Gsplat/Standard"
             bool _GammaToLinear;
             uint _SplatCount;
             uint _SplatInstanceSize;
+            uint _SHDegree;
             float4x4 _MATRIX_M;
             StructuredBuffer<uint> _OrderBuffer;
             StructuredBuffer<uint4> _PackedSplatsBuffer;
 
-            #ifndef SH_BANDS_0
-            StructuredBuffer<uint2> _PackedSH1Buffer;
-
-            #ifndef SH_BANDS_1
-            StructuredBuffer<uint4> _PackedSH2Buffer;
-            #endif
-
-            #ifdef SH_BANDS_3
-            StructuredBuffer<uint4> _PackedSH3Buffer;
-            #endif
-
-            #endif
-
             #include "SH.hlsl"
+
+            #ifndef SH_BANDS_0
+            StructuredBuffer<PackedSH> _PackedSHBuffer;
+            #endif
 
             struct appdata
             {
@@ -137,15 +129,22 @@ Shader "Gsplat/Standard"
                 // calculate the model-space view direction
                 float3 dir = normalize(mul(center.view, (float3x3)center.modelView));
 
-                color.rgb += EvaluateSH1(_PackedSH1Buffer[source.id], dir);
-
-                #ifndef SH_BANDS_1
-                color.rgb += EvaluateSH2(_PackedSH2Buffer[source.id], dir);
-                #endif
-
-                #ifdef SH_BANDS_3
-                color.rgb += EvaluateSH3(_PackedSH3Buffer[source.id], dir);
-                #endif
+                if (_SHDegree >= 1) {
+                    PackedSH p = _PackedSHBuffer[source.id];
+                    color.rgb += EvaluateSH1(p.sh1, dir);
+                    
+                    #ifndef SH_BANDS_1
+                    if (_SHDegree >= 2) {
+                        color.rgb += EvaluateSH2(p.sh2, dir);
+                    }
+                    #endif
+                    
+                    #ifdef SH_BANDS_3
+                    if (_SHDegree == 3) {
+                        color.rgb += EvaluateSH3(p.sh3, dir);
+                    }
+                    #endif
+                }
 
                 #endif
 

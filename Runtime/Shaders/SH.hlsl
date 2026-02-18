@@ -6,6 +6,19 @@
 
 #ifndef SH_BANDS_0
 
+struct PackedSH
+{
+    uint2 sh1;
+
+    #if defined(SH_BANDS_2) || defined(SH_BANDS_3)
+    uint4 sh2;
+    #endif
+    
+    #ifdef SH_BANDS_3
+    uint4 sh3;
+    #endif
+};
+
 #define SH_C1 0.4886025119029199f
 #define SH_C2_0 1.0925484305920792f
 #define SH_C2_1 -1.0925484305920792f

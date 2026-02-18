@@ -49,6 +49,7 @@ namespace Gsplat
         }
 
         public static readonly int[] SHBandSize = { 3, 5, 7 };
+        public static readonly int[] PackedSHBandCompoundSize = { 2, 6, 10 };
 
         public static Bounds CalcWorldBounds(Bounds localBounds, Transform transform)
         {
