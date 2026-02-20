@@ -194,7 +194,10 @@ Shader "Gsplat/Standard"
 
                 if (A > 1.0) discard;
 
-                float falloff = -exp((A - _SizeThreshold * 1.16) * 25);
+                float2 absUV = abs(i.uv);
+                float maxUV = max(absUV.x, absUV.y);
+
+                float falloff = -exp((maxUV - _SizeThreshold * 1.16) * 25 * _SizeThreshold);
                 float alpha = exp(-A * 4.0) + falloff;
                 alpha *= i.color.a;
 
