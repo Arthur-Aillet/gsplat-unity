@@ -114,6 +114,8 @@ Shader "Gsplat/Standard"
                     return o;
                 }
 
+                source.cornerUV *= _SizeThreshold;
+
                 float3 modelCenter = _PositionBuffer[source.id];
                 SplatCenter center;
                 if (!InitCenter(modelCenter, center))
@@ -143,7 +145,7 @@ Shader "Gsplat/Standard"
 
                 ClipCorner(corner, color.w);
 
-                o.vertex = center.proj + float4(corner.offset.x, _ProjectionParams.x * corner.offset.y, 0, 0) * _SizeThreshold;
+                o.vertex = center.proj + float4(corner.offset.x, _ProjectionParams.x * corner.offset.y, 0, 0);
                 o.color = float4(max(color.rgb, float3(0, 0, 0)), color.a);
                 o.uv = corner.uv;
                 return o;
