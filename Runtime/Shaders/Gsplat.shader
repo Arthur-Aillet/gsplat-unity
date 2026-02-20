@@ -33,11 +33,7 @@ Shader "Gsplat/Standard"
             int _SHDegree;
             float4x4 _MATRIX_M;
             StructuredBuffer<uint> _OrderBuffer;
-            StructuredBuffer<float3> _PositionBuffer;
-            StructuredBuffer<float3> _ScaleBuffer;
-            StructuredBuffer<float4> _RotationBuffer;
-            StructuredBuffer<float4> _ColorBuffer;
-
+            StructuredBuffer<uint4> _PackedSplatsBuffer;
             #ifndef SH_BANDS_0
             StructuredBuffer<float3> _SHBuffer;
             #endif
@@ -84,14 +80,6 @@ Shader "Gsplat/Standard"
                 return true;
             }
 
-            // sample covariance vectors
-            SplatCovariance ReadCovariance(SplatSource source)
-            {
-                float4 quat = _RotationBuffer[source.id];
-                float3 scale = _ScaleBuffer[source.id];
-                return CalcCovariance(quat, scale);
-            }
-
             struct v2f
             {
                 float2 uv : TEXCOORD0;
@@ -114,9 +102,18 @@ Shader "Gsplat/Standard"
                     return o;
                 }
 
+<<<<<<< feat/size-control
                 source.cornerUV *= _SizeThreshold;
 
                 float3 modelCenter = _PositionBuffer[source.id];
+=======
+                uint4 packedSplat = _PackedSplatsBuffer[source.id];
+
+                float3 modelCenter, scale;
+                float4 color, quat;
+                UnpackSplat(packedSplat, color, modelCenter, scale, quat);
+
+>>>>>>> main
                 SplatCenter center;
                 if (!InitCenter(modelCenter, center))
                 {
@@ -124,7 +121,7 @@ Shader "Gsplat/Standard"
                     return o;
                 }
 
-                SplatCovariance cov = ReadCovariance(source);
+                SplatCovariance cov = CalcCovariance(quat, scale);
                 SplatCorner corner;
                 if (!InitCorner(source, cov, center, corner))
                 {
@@ -132,8 +129,6 @@ Shader "Gsplat/Standard"
                     return o;
                 }
 
-                float4 color = _ColorBuffer[source.id];
-                color.rgb = color.rgb * SH_C0 + 0.5;
                 #ifndef SH_BANDS_0
                 // calculate the model-space view direction
                 float3 dir = normalize(mul(center.view, (float3x3)center.modelView));
@@ -146,7 +141,7 @@ Shader "Gsplat/Standard"
                 ClipCorner(corner, color.w);
 
                 o.vertex = center.proj + float4(corner.offset.x, _ProjectionParams.x * corner.offset.y, 0, 0);
-                o.color = float4(max(color.rgb, float3(0, 0, 0)), color.a);
+                o.color = color;
                 o.uv = corner.uv;
                 return o;
             }
