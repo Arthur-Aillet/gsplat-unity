@@ -27,6 +27,7 @@ Shader "Gsplat/Standard"
             #include "UnityCG.cginc"
             #include "Gsplat.hlsl"
             bool _GammaToLinear;
+            float _SizeThreshold;
             int _SplatCount;
             int _SplatInstanceSize;
             int _SHDegree;
@@ -101,6 +102,7 @@ Shader "Gsplat/Standard"
                     return o;
                 }
 
+                source.cornerUV *= _SizeThreshold;
                 uint4 packedSplat = _PackedSplatsBuffer[source.id];
 
                 float3 modelCenter, scale;
@@ -143,7 +145,14 @@ Shader "Gsplat/Standard"
             {
                 float A = dot(i.uv, i.uv);
                 if (A > 1.0) discard;
-                float alpha = exp(-A * 4.0) * i.color.a;
+
+                float2 absUV = abs(i.uv);
+                float maxUV = max(absUV.x, absUV.y);
+
+                float falloff = -exp((maxUV - _SizeThreshold * 1.16) * 25 * _SizeThreshold);
+                float alpha = exp(-A * 4.0) + falloff;
+                alpha *= i.color.a;
+
                 if (alpha < 1.0 / 255.0) discard;
                 if (_GammaToLinear)
                     return float4(GammaToLinearSpace(i.color.rgb) * alpha, alpha);
