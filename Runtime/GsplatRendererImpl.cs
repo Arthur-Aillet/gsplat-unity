@@ -94,7 +94,7 @@ namespace Gsplat
         public void Render(uint splatCount, Transform transform, Bounds localBounds, int layer,
             bool gammaToLinear = false, int shDegree = 3)
         {
-            if (!Valid || !GsplatSettings.Instance.Valid || !GsplatComputeManager.Instance.Valid)
+            if (!Valid || !GsplatSettings.Instance.Valid || !GsplatComputeManager.Instance.Valid || splatCount <= 0)
                 return;
 
             m_propertyBlock.SetInteger(k_splatCount, (int)splatCount);

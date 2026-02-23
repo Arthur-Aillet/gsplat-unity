@@ -151,6 +151,9 @@ namespace Gsplat
             {
                 var res = (Resource)gs.Resource;
 
+                if (gs.RemainingCount <= 0)
+                    continue;
+
                 var sorterArgs = new GsplatSortPass.Args
                 {
                     Count = gs.RemainingCount,
