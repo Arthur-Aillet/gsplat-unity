@@ -61,7 +61,7 @@ namespace Gsplat
             OrderBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Append, (int)splatCount, sizeof(uint));
             OrderSizeBuffer = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, 1, sizeof(uint));
 
-            Resource = GsplatComputeManager.Instance.CreateSorterResource(splatCount, PackedSplatsBuffer, OrderBuffer, OrderSizeBuffer);
+            Resource = GsplatComputeManager.Instance.CreateComputeResource(splatCount, PackedSplatsBuffer, OrderBuffer, OrderSizeBuffer);
         }
 
         void CreatePropertyBlock()

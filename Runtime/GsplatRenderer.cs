@@ -112,6 +112,8 @@ namespace Gsplat
                 }
             }
 
+            GsplatComputeManager.Instance.DispatchPrePass(this);
+
             if (Valid)
                 m_renderer.Render(m_remainingCount, transform, GsplatAsset.Bounds,
                     gameObject.layer, GammaToLinear, SHDegree);

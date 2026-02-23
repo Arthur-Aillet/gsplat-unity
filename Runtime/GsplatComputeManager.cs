@@ -144,7 +144,6 @@ namespace Gsplat
                 return;
 
             InitialClearCmdBuffer(camera);
-            DispatchPrePass(m_commandBuffer, camera);
             DispatchSort(m_commandBuffer, camera);
         }
 
@@ -167,24 +166,22 @@ namespace Gsplat
             }
         }
 
-        public void DispatchPrePass(CommandBuffer cmd, Camera camera)
+        public void DispatchPrePass(IGsplat gs)
         {
-            foreach (var gs in m_activeGsplats)
-            {
-                var res = (Resource)gs.Resource;
-                res.OrderBuffer.SetCounterValue(0);
+            var res = (Resource)gs.Resource;
+            res.OrderBuffer.SetCounterValue(0);
 
-                var prePassResources = res.PrePassResources;
-                m_prePass.Dispatch(cmd, res.OrderBuffer, res.PackedSplatsBuffer, ref prePassResources, gs);
-                res.PrePassResources = prePassResources;
+            var prePassResources = res.PrePassResources;
+            m_prePass.Dispatch(res.OrderBuffer, res.PackedSplatsBuffer, ref prePassResources, gs);
+            res.PrePassResources = prePassResources;
 
-                GraphicsBuffer.CopyCount(res.OrderBuffer, res.OrderSizeBuffer, 0);
-                uint[] count = new uint[1];
-                res.OrderSizeBuffer.GetData(count);
-                gs.RemainingCount = count[0];
-            }
+            GraphicsBuffer.CopyCount(res.OrderBuffer, res.OrderSizeBuffer, 0);
+            uint[] count = new uint[1];
+            res.OrderSizeBuffer.GetData(count);
+            gs.RemainingCount = count[0];
         }
-        public IComputeManagerResource CreateSorterResource(uint count, GraphicsBuffer packedSplatsBuffer,
+
+        public IComputeManagerResource CreateComputeResource(uint count, GraphicsBuffer packedSplatsBuffer,
             GraphicsBuffer orderBuffer, GraphicsBuffer orderSizeBuffer)
         {
             return new Resource(count, packedSplatsBuffer, orderBuffer, orderSizeBuffer);
