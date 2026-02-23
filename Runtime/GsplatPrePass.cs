@@ -26,12 +26,15 @@ namespace Gsplat
         public struct SupportResources
         {
             public GraphicsBuffer CutoutsBuffer;
+            public GraphicsBuffer OrderSizeBuffer;
 
             public static SupportResources Create()
             {
                 var resources = new SupportResources
                 {
                     CutoutsBuffer = null,
+                    OrderSizeBuffer = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, 1, sizeof(uint)),
+
                 };
                 return resources;
             }
@@ -39,7 +42,10 @@ namespace Gsplat
             public void Dispose()
             {
                 CutoutsBuffer?.Dispose();
+                OrderSizeBuffer?.Dispose();
+
                 CutoutsBuffer = null;
+                OrderSizeBuffer = null;
             }
         }
 
@@ -95,6 +101,14 @@ namespace Gsplat
             m_CS.SetBuffer(m_kernelPreCompute, k_orderBuffer, orderBuffer);
             m_CS.SetBuffer(m_kernelPreCompute, k_packedSplatsBuffer, packedSplats);
             m_CS.Dispatch(m_kernelPreCompute, threadBlocks, 1, 1);
+        }
+
+        public uint ExtractOrderSize(GraphicsBuffer orderBuffer, SupportResources res)
+        {
+            GraphicsBuffer.CopyCount(orderBuffer, res.OrderSizeBuffer, 0);
+            uint[] count = new uint[1];
+            res.OrderSizeBuffer.GetData(count);
+            return count[0];
         }
     }
 }

@@ -34,16 +34,14 @@ namespace Gsplat
         {
             public GraphicsBuffer PackedSplatsBuffer { get; }
             public GraphicsBuffer OrderBuffer { get; set; }
-            public GraphicsBuffer OrderSizeBuffer { get; set; }
             public GraphicsBuffer InputKeys { get; private set; }
             public GsplatSortPass.SupportResources SortResources { get; }
             public GsplatPrePass.SupportResources PrePassResources { get; set; }
 
-            public Resource(uint count, GraphicsBuffer packedSplatsBuffer, GraphicsBuffer orderBuffer, GraphicsBuffer orderSizeBuffer)
+            public Resource(uint count, GraphicsBuffer packedSplatsBuffer, GraphicsBuffer orderBuffer)
             {
                 PackedSplatsBuffer = packedSplatsBuffer;
                 OrderBuffer = orderBuffer;
-                OrderSizeBuffer = orderSizeBuffer;
 
                 InputKeys = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)count, sizeof(uint));
                 SortResources = GsplatSortPass.SupportResources.Load(count);
@@ -174,17 +172,13 @@ namespace Gsplat
             var prePassResources = res.PrePassResources;
             m_prePass.Dispatch(res.OrderBuffer, res.PackedSplatsBuffer, ref prePassResources, gs);
             res.PrePassResources = prePassResources;
-
-            GraphicsBuffer.CopyCount(res.OrderBuffer, res.OrderSizeBuffer, 0);
-            uint[] count = new uint[1];
-            res.OrderSizeBuffer.GetData(count);
-            gs.RemainingCount = count[0];
+            gs.RemainingCount = m_prePass.ExtractOrderSize(res.OrderBuffer, prePassResources);
         }
 
         public IComputeManagerResource CreateComputeResource(uint count, GraphicsBuffer packedSplatsBuffer,
-            GraphicsBuffer orderBuffer, GraphicsBuffer orderSizeBuffer)
+            GraphicsBuffer orderBuffer)
         {
-            return new Resource(count, packedSplatsBuffer, orderBuffer, orderSizeBuffer);
+            return new Resource(count, packedSplatsBuffer, orderBuffer);
         }
     }
 }
