@@ -36,16 +36,16 @@ namespace Gsplat
                 builder.SetRenderFunc(static (PassData data, UnsafeGraphContext context) =>
                 {
                     var commandBuffer = CommandBufferHelpers.GetNativeCommandBuffer(context.cmd);
-                    GsplatComputeManager.Instance.DispatchSort(commandBuffer, data.CameraData.camera);
                     GsplatComputeManager.Instance.DispatchPrePass(commandBuffer, data.CameraData.camera);
+                    GsplatComputeManager.Instance.DispatchSort(commandBuffer, data.CameraData.camera);
                 });
             }
 #else
             public CommandBuffer CommandBuffer;
             public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
             {
+                GsplatComputeManager.Instance.DispatchPrePass(CommandBuffer, renderingData.CameraData.camera);
                 GsplatComputeManager.Instance.DispatchSort(CommandBuffer, renderingData.cameraData.camera);
-                GsplatComputeManager.Instance.DispatchPrePass(commandBuffer, renderingData.CameraData.camera);
                 context.ExecuteCommandBuffer(CommandBuffer);
             }
 #endif

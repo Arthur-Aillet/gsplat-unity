@@ -59,15 +59,15 @@ namespace Gsplat
             }
         }
 
-        void UpdateCutoutsBuffer(CommandBuffer cmd, ref GraphicsBuffer cutoutsBuffer, GsplatCutout[] cutouts, Transform transform)
+        void UpdateCutoutsBuffer(CommandBuffer cmd, ref SupportResources res, GsplatCutout[] cutouts, Transform transform)
         {
             int numberOfCutouts = cutouts?.Length ?? 0;
             int bufferSize = Math.Max(numberOfCutouts, 1);
 
-            if (cutoutsBuffer == null || cutoutsBuffer.count != bufferSize)
+            if (res.CutoutsBuffer == null || res.CutoutsBuffer.count != bufferSize)
             {
-                cutoutsBuffer?.Dispose();
-                cutoutsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, bufferSize, GsplatCutout.ShaderDataSize);
+                res.CutoutsBuffer?.Dispose();
+                res.CutoutsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, bufferSize, GsplatCutout.ShaderDataSize);
             }
 
             NativeArray<GsplatCutout.ShaderData> data = new(bufferSize, Allocator.Temp);
@@ -79,10 +79,13 @@ namespace Gsplat
                     data[i] = cutouts[i].GetShaderData(matrix);
                 }
             }
-            cutoutsBuffer.SetData(data);
+            res.CutoutsBuffer.SetData(data);
             data.Dispose();
-            cmd.SetComputeBufferParam(m_CS, m_kernelPreCompute, k_cutoutsBuffer, cutoutsBuffer);
-            cmd.SetComputeIntParam(m_CS, k_splatCutoutsCount, numberOfCutouts);
+            //cmd.SetComputeBufferParam(m_CS, m_kernelPreCompute, k_cutoutsBuffer, res.CutoutsBuffer);
+            //cmd.SetComputeIntParam(m_CS, k_splatCutoutsCount, numberOfCutouts);
+            m_CS.SetBuffer(m_kernelPreCompute, k_cutoutsBuffer, res.CutoutsBuffer);
+            m_CS.SetInt(k_splatCutoutsCount, numberOfCutouts);
+
         }
 
         public void Dispatch(CommandBuffer cmd, GraphicsBuffer orderBuffer, GraphicsBuffer packedSplats, ref SupportResources res, IGsplat gs)
@@ -91,11 +94,15 @@ namespace Gsplat
 
             int threadBlocks = GsplatUtils.DivRoundUp((int)gs.SplatCount, 1024);
 
-            UpdateCutoutsBuffer(cmd, ref res.CutoutsBuffer, gs.cutouts, gs.transform);
-            cmd.SetComputeIntParam(m_CS, k_count, (int)gs.SplatCount);
-            cmd.SetComputeBufferParam(m_CS, m_kernelPreCompute, k_orderBuffer, orderBuffer);
-            cmd.SetComputeBufferParam(m_CS, m_kernelPreCompute, k_packedSplatsBuffer, packedSplats);
-            cmd.DispatchCompute(m_CS, m_kernelPreCompute, threadBlocks, 1, 1);
+            UpdateCutoutsBuffer(cmd, ref res, gs.cutouts, gs.transform);
+            m_CS.SetInt(k_count, (int)gs.SplatCount);
+            m_CS.SetBuffer(m_kernelPreCompute, k_orderBuffer, orderBuffer);
+            m_CS.SetBuffer(m_kernelPreCompute, k_packedSplatsBuffer, packedSplats);
+            m_CS.Dispatch(m_kernelPreCompute, threadBlocks, 1, 1);
+            // cmd.SetComputeIntParam(m_CS, k_count, (int)gs.SplatCount);
+            // cmd.SetComputeBufferParam(m_CS, m_kernelPreCompute, k_orderBuffer, orderBuffer);
+            // cmd.SetComputeBufferParam(m_CS, m_kernelPreCompute, k_packedSplatsBuffer, packedSplats);
+            // cmd.DispatchCompute(m_CS, m_kernelPreCompute, threadBlocks, 1, 1);
         }
     }
 }

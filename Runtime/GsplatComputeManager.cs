@@ -13,6 +13,7 @@ namespace Gsplat
         public Transform transform { get; }
         public GsplatCutout[] cutouts { get; }
         public uint SplatCount { get; }
+        public uint RemainingCount { get; set; }
         public IComputeManagerResource Resource { get; }
         public bool isActiveAndEnabled { get; }
         public bool Valid { get; }
@@ -32,16 +33,17 @@ namespace Gsplat
         class Resource : IComputeManagerResource
         {
             public GraphicsBuffer PackedSplatsBuffer { get; }
-            public GraphicsBuffer OrderBuffer { get; }
+            public GraphicsBuffer OrderBuffer { get; set; }
+            public GraphicsBuffer OrderSizeBuffer { get; set; }
             public GraphicsBuffer InputKeys { get; private set; }
             public GsplatSortPass.SupportResources SortResources { get; }
             public GsplatPrePass.SupportResources PrePassResources { get; set; }
-            public bool Initialized;
 
-            public Resource(uint count, GraphicsBuffer packedSplatsBuffer, GraphicsBuffer orderBuffer)
+            public Resource(uint count, GraphicsBuffer packedSplatsBuffer, GraphicsBuffer orderBuffer, GraphicsBuffer orderSizeBuffer)
             {
                 PackedSplatsBuffer = packedSplatsBuffer;
                 OrderBuffer = orderBuffer;
+                OrderSizeBuffer = orderSizeBuffer;
 
                 InputKeys = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)count, sizeof(uint));
                 SortResources = GsplatSortPass.SupportResources.Load(count);
@@ -142,8 +144,8 @@ namespace Gsplat
                 return;
 
             InitialClearCmdBuffer(camera);
-            DispatchSort(m_commandBuffer, camera);
             DispatchPrePass(m_commandBuffer, camera);
+            DispatchSort(m_commandBuffer, camera);
         }
 
         public void DispatchSort(CommandBuffer cmd, Camera camera)
@@ -152,15 +154,9 @@ namespace Gsplat
             {
                 var res = (Resource)gs.Resource;
 
-                //if (!res.Initialized)
-                //{
-                m_sortPass.InitPayload(cmd, res.OrderBuffer, (uint)res.OrderBuffer.count);
-                //    res.Initialized = true;
-                //}
-
                 var sorterArgs = new GsplatSortPass.Args
                 {
-                    Count = gs.SplatCount,
+                    Count = gs.RemainingCount,
                     MatrixMv = camera.worldToCameraMatrix * gs.transform.localToWorldMatrix,
                     PackedSplatsBuffer = res.PackedSplatsBuffer,
                     InputKeys = res.InputKeys,
@@ -176,16 +172,22 @@ namespace Gsplat
             foreach (var gs in m_activeGsplats)
             {
                 var res = (Resource)gs.Resource;
+                res.OrderBuffer.SetCounterValue(0);
 
                 var prePassResources = res.PrePassResources;
                 m_prePass.Dispatch(cmd, res.OrderBuffer, res.PackedSplatsBuffer, ref prePassResources, gs);
                 res.PrePassResources = prePassResources;
+
+                GraphicsBuffer.CopyCount(res.OrderBuffer, res.OrderSizeBuffer, 0);
+                uint[] count = new uint[1];
+                res.OrderSizeBuffer.GetData(count);
+                gs.RemainingCount = count[0];
             }
         }
         public IComputeManagerResource CreateSorterResource(uint count, GraphicsBuffer packedSplatsBuffer,
-            GraphicsBuffer orderBuffer)
+            GraphicsBuffer orderBuffer, GraphicsBuffer orderSizeBuffer)
         {
-            return new Resource(count, packedSplatsBuffer, orderBuffer);
+            return new Resource(count, packedSplatsBuffer, orderBuffer, orderSizeBuffer);
         }
     }
 }

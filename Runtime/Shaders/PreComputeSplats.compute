@@ -7,7 +7,8 @@
 
 uint _Count;
 
-RWStructuredBuffer<uint> _OrderBuffer;
+AppendStructuredBuffer<uint> _OrderBuffer;
+
 StructuredBuffer<uint4> _PackedSplatsBuffer;
 
 struct GaussianCutoutShaderData
@@ -27,16 +28,14 @@ void PreCompute(uint3 id : SV_DispatchThreadID)
     if (idx >= _Count)
         return;
 
-    uint order = _OrderBuffer[idx];
-
-    uint4 packedSplat = _PackedSplatsBuffer[order];
+    uint4 packedSplat = _PackedSplatsBuffer[idx];
     uint word1 = packedSplat.y;
     uint word2 = packedSplat.z;
 
     float3 modelCenter = float3(f16tof32(word1 & 0xFFFFU), f16tof32((word1 >> 16u) & 0xFFFFU), f16tof32(word2 & 0xFFFFU));
 
-    if (IsSplatCut(modelCenter))
+    if (!IsSplatCut(modelCenter))
     {
-        _OrderBuffer[idx] = _Count + 1;
+        _OrderBuffer.Append(idx);
     }
 }
