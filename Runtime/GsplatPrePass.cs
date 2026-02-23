@@ -24,6 +24,26 @@ namespace Gsplat
         readonly bool m_Valid;
         public bool Valid => m_Valid;
 
+        public struct SupportResources
+        {
+            public GraphicsBuffer CutoutsBuffer;
+
+            public static SupportResources Create()
+            {
+                var resources = new SupportResources
+                {
+                    CutoutsBuffer = null,
+                };
+                return resources;
+            }
+
+            public void Dispose()
+            {
+                CutoutsBuffer?.Dispose();
+                CutoutsBuffer = null;
+            }
+        }
+
         public GsplatPrePass(ComputeShader cs)
         {
             m_CS = cs;
@@ -39,7 +59,7 @@ namespace Gsplat
             }
         }
 
-        void UpdateCutoutsBuffer(CommandBuffer cmd, GraphicsBuffer cutoutsBuffer, GsplatCutout[] cutouts, Transform transform)
+        void UpdateCutoutsBuffer(CommandBuffer cmd, ref GraphicsBuffer cutoutsBuffer, GsplatCutout[] cutouts, Transform transform)
         {
             int numberOfCutouts = cutouts?.Length ?? 0;
             int bufferSize = Math.Max(numberOfCutouts, 1);
@@ -61,18 +81,17 @@ namespace Gsplat
             }
             cutoutsBuffer.SetData(data);
             data.Dispose();
-
             cmd.SetComputeBufferParam(m_CS, m_kernelPreCompute, k_cutoutsBuffer, cutoutsBuffer);
             cmd.SetComputeIntParam(m_CS, k_splatCutoutsCount, numberOfCutouts);
         }
 
-        public void Dispatch(CommandBuffer cmd, GraphicsBuffer orderBuffer, GraphicsBuffer cutoutBuffer, GraphicsBuffer packedSplats, IGsplat gs)
+        public void Dispatch(CommandBuffer cmd, GraphicsBuffer orderBuffer, GraphicsBuffer packedSplats, ref SupportResources res, IGsplat gs)
         {
             Assert.IsTrue(Valid);
 
             int threadBlocks = GsplatUtils.DivRoundUp((int)gs.SplatCount, 1024);
 
-            UpdateCutoutsBuffer(cmd, cutoutBuffer, gs.cutouts, gs.transform);
+            UpdateCutoutsBuffer(cmd, ref res.CutoutsBuffer, gs.cutouts, gs.transform);
             cmd.SetComputeIntParam(m_CS, k_count, (int)gs.SplatCount);
             cmd.SetComputeBufferParam(m_CS, m_kernelPreCompute, k_orderBuffer, orderBuffer);
             cmd.SetComputeBufferParam(m_CS, m_kernelPreCompute, k_packedSplatsBuffer, packedSplats);

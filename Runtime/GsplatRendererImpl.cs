@@ -25,7 +25,6 @@ namespace Gsplat
         static readonly int k_shBuffer = Shader.PropertyToID("_SHBuffer");
         static readonly int k_matrixM = Shader.PropertyToID("_MATRIX_M");
         static readonly int k_splatCount = Shader.PropertyToID("_SplatCount");
-        static readonly int k_splatCutoutsCount = Shader.PropertyToID("_SplatCutoutsCount");
         static readonly int k_splatInstanceSize = Shader.PropertyToID("_SplatInstanceSize");
         static readonly int k_gammaToLinear = Shader.PropertyToID("_GammaToLinear");
         static readonly int k_shDegree = Shader.PropertyToID("_SHDegree");
