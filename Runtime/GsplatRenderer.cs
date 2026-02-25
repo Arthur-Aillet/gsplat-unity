@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 using System;
+using System.Linq;
 using UnityEngine;
 
 namespace Gsplat
@@ -34,7 +35,7 @@ namespace Gsplat
         {
             get
             {
-                return transform.GetComponentsInChildren<GsplatCutout>(includeInactive: false);
+                return transform.GetComponentsInChildren<GsplatCutout>(includeInactive: false).Where(component => component.enabled).ToArray();
             }
         }
 

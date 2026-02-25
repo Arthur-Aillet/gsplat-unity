@@ -144,13 +144,13 @@ namespace Gsplat
         }
 
         // fill the payload buffer with 0, 1, 2, ..., count-1
-        // public void InitPayload(CommandBuffer cmd, GraphicsBuffer payloadBuffer, uint count)
-        // {
-        //     Assert.IsTrue(Valid);
-        //     cmd.SetComputeIntParam(m_CS, k_eNumKeys, (int)count);
-        //     cmd.SetComputeBufferParam(m_CS, m_kernelInitPayload, k_bSortPayload, payloadBuffer);
-        //     cmd.DispatchCompute(m_CS, m_kernelInitPayload, GsplatUtils.DivRoundUp((int)count, 1024), 1, 1);
-        // }
+        public void InitPayload(CommandBuffer cmd, GraphicsBuffer payloadBuffer, uint count)
+        {
+            Assert.IsTrue(Valid);
+            cmd.SetComputeIntParam(m_CS, k_eNumKeys, (int)count);
+            cmd.SetComputeBufferParam(m_CS, m_kernelInitPayload, k_bSortPayload, payloadBuffer);
+            cmd.DispatchCompute(m_CS, m_kernelInitPayload, GsplatUtils.DivRoundUp((int)count, 1024), 1, 1);
+        }
 
         public void Dispatch(CommandBuffer cmd, Args args)
         {

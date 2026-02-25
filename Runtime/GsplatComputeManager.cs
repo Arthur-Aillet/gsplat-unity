@@ -37,11 +37,15 @@ namespace Gsplat
             public GraphicsBuffer InputKeys { get; private set; }
             public GsplatSortPass.SupportResources SortResources { get; }
             public GsplatPrePass.SupportResources PrePassResources { get; set; }
+            public bool WaitForInit;
+            public bool HandlingCutouts;
 
             public Resource(uint count, GraphicsBuffer packedSplatsBuffer, GraphicsBuffer orderBuffer)
             {
                 PackedSplatsBuffer = packedSplatsBuffer;
                 OrderBuffer = orderBuffer;
+                WaitForInit = false;
+                HandlingCutouts = true;
 
                 InputKeys = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)count, sizeof(uint));
                 SortResources = GsplatSortPass.SupportResources.Load(count);
@@ -154,6 +158,12 @@ namespace Gsplat
                 if (gs.RemainingCount <= 0)
                     continue;
 
+                if (res.WaitForInit)
+                {
+                    m_sortPass.InitPayload(cmd, res.OrderBuffer, (uint)res.OrderBuffer.count);
+                    res.WaitForInit = false;
+                }
+
                 var sorterArgs = new GsplatSortPass.Args
                 {
                     Count = gs.RemainingCount,
@@ -170,8 +180,22 @@ namespace Gsplat
         public void DispatchPrePass(IGsplat gs)
         {
             var res = (Resource)gs.Resource;
-            res.OrderBuffer.SetCounterValue(0);
 
+            if (gs.cutouts.Length == 0)
+            {
+                if (res.HandlingCutouts == true)
+                {
+                    res.HandlingCutouts = false;
+                    res.WaitForInit = true;
+                    gs.RemainingCount = gs.SplatCount;
+                }
+                return;
+            }
+
+            if (res.HandlingCutouts == false)
+                res.HandlingCutouts = true;
+
+            res.OrderBuffer.SetCounterValue(0);
             var prePassResources = res.PrePassResources;
             m_prePass.Dispatch(res.OrderBuffer, res.PackedSplatsBuffer, ref prePassResources, gs);
             res.PrePassResources = prePassResources;
