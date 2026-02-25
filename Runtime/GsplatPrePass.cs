@@ -64,40 +64,31 @@ namespace Gsplat
             }
         }
 
-        void UpdateCutoutsBuffer(ref SupportResources res, GsplatCutout[] cutouts, Transform transform)
+        void UpdateCutoutsBuffer(ref GraphicsBuffer cutoutsBuffer, GsplatCutout.ShaderData[] cutouts)
         {
-            int numberOfCutouts = cutouts?.Length ?? 0;
+            int numberOfCutouts = cutouts.Length;
             int bufferSize = Math.Max(numberOfCutouts, 1);
 
-            if (res.CutoutsBuffer == null || res.CutoutsBuffer.count != bufferSize)
+            if (cutoutsBuffer == null || cutoutsBuffer.count != bufferSize)
             {
-                res.CutoutsBuffer?.Dispose();
-                res.CutoutsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, bufferSize, GsplatCutout.ShaderDataSize);
+                cutoutsBuffer?.Dispose();
+                cutoutsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, bufferSize, GsplatCutout.ShaderDataSize);
             }
 
-            NativeArray<GsplatCutout.ShaderData> data = new(bufferSize, Allocator.Temp);
-            if (cutouts != null)
-            {
-                var matrix = transform.localToWorldMatrix;
-                for (var i = 0; i < cutouts.Length; ++i)
-                {
-                    data[i] = cutouts[i].GetShaderData(matrix);
-                }
-            }
-            res.CutoutsBuffer.SetData(data);
-            data.Dispose();
-            m_CS.SetBuffer(m_kernelPreCompute, k_cutoutsBuffer, res.CutoutsBuffer);
+            cutoutsBuffer.SetData(cutouts);
+            m_CS.SetBuffer(m_kernelPreCompute, k_cutoutsBuffer, cutoutsBuffer);
             m_CS.SetInt(k_splatCutoutsCount, numberOfCutouts);
         }
 
-        public void Dispatch(GraphicsBuffer orderBuffer, GraphicsBuffer packedSplats, ref SupportResources res, IGsplat gs)
+        public void Dispatch(GraphicsBuffer orderBuffer, GraphicsBuffer packedSplats, ref GraphicsBuffer cutoutsBuffer, GsplatCutout.ShaderData[] cutouts, int splatCount)
         {
             Assert.IsTrue(Valid);
+            orderBuffer.SetCounterValue(0);
 
-            int threadBlocks = GsplatUtils.DivRoundUp((int)gs.SplatCount, 1024);
+            int threadBlocks = GsplatUtils.DivRoundUp(splatCount, 1024);
 
-            UpdateCutoutsBuffer(ref res, gs.cutouts, gs.transform);
-            m_CS.SetInt(k_count, (int)gs.SplatCount);
+            UpdateCutoutsBuffer(ref cutoutsBuffer, cutouts);
+            m_CS.SetInt(k_count, splatCount);
             m_CS.SetBuffer(m_kernelPreCompute, k_orderBuffer, orderBuffer);
             m_CS.SetBuffer(m_kernelPreCompute, k_packedSplatsBuffer, packedSplats);
             m_CS.Dispatch(m_kernelPreCompute, threadBlocks, 1, 1);

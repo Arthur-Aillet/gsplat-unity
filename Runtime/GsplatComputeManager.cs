@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.PlayerLoop;
 using UnityEngine.Rendering;
 
 namespace Gsplat
@@ -36,9 +37,10 @@ namespace Gsplat
             public GraphicsBuffer OrderBuffer { get; set; }
             public GraphicsBuffer InputKeys { get; private set; }
             public GsplatSortPass.SupportResources SortResources { get; }
-            public GsplatPrePass.SupportResources PrePassResources { get; set; }
+            public GsplatPrePass.SupportResources PrePassResources;
             public bool WaitForInit;
             public bool HandlingCutouts;
+            public GsplatCutout.ShaderData[] CutoutsData;
 
             public Resource(uint count, GraphicsBuffer packedSplatsBuffer, GraphicsBuffer orderBuffer)
             {
@@ -46,6 +48,7 @@ namespace Gsplat
                 OrderBuffer = orderBuffer;
                 WaitForInit = false;
                 HandlingCutouts = true;
+                CutoutsData = new GsplatCutout.ShaderData[0];
 
                 InputKeys = new GraphicsBuffer(GraphicsBuffer.Target.Structured, (int)count, sizeof(uint));
                 SortResources = GsplatSortPass.SupportResources.Load(count);
@@ -187,6 +190,7 @@ namespace Gsplat
                 {
                     res.HandlingCutouts = false;
                     res.WaitForInit = true;
+                    res.CutoutsData = new GsplatCutout.ShaderData[0];
                     gs.RemainingCount = gs.SplatCount;
                 }
                 return;
@@ -195,11 +199,23 @@ namespace Gsplat
             if (res.HandlingCutouts == false)
                 res.HandlingCutouts = true;
 
-            res.OrderBuffer.SetCounterValue(0);
-            var prePassResources = res.PrePassResources;
-            m_prePass.Dispatch(res.OrderBuffer, res.PackedSplatsBuffer, ref prePassResources, gs);
-            res.PrePassResources = prePassResources;
-            gs.RemainingCount = m_prePass.ExtractOrderSize(res.OrderBuffer, prePassResources);
+            GsplatCutout.ShaderData[] updatedCutoutsData = new GsplatCutout.ShaderData[gs.cutouts.Length];
+            bool cutoutsUnchanged = res.CutoutsData.Length == updatedCutoutsData.Length;
+            for (int i = 0; i != gs.cutouts.Length; i++)
+            {
+                updatedCutoutsData[i] = gs.cutouts[i].GetShaderData(gs.transform.localToWorldMatrix);
+                if (cutoutsUnchanged)
+                    if (updatedCutoutsData[i].matrix != res.CutoutsData[i].matrix || updatedCutoutsData[i].typeAndFlags != res.CutoutsData[i].typeAndFlags)
+                        cutoutsUnchanged = false;
+            }
+
+            if (cutoutsUnchanged)
+                return;
+
+            res.CutoutsData = updatedCutoutsData;
+
+            m_prePass.Dispatch(res.OrderBuffer, res.PackedSplatsBuffer, ref res.PrePassResources.CutoutsBuffer, res.CutoutsData, (int)gs.SplatCount);
+            gs.RemainingCount = m_prePass.ExtractOrderSize(res.OrderBuffer, res.PrePassResources);
         }
 
         public IComputeManagerResource CreateComputeResource(uint count, GraphicsBuffer packedSplatsBuffer,

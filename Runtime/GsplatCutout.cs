@@ -63,8 +63,7 @@ namespace Gsplat
                 var activeGo = Selection.activeGameObject;
                 if (activeGo != null)
                 {
-                    var activeSplat = activeGo.GetComponent<GsplatRenderer>();
-                    if (activeSplat != null)
+                    if (activeGo.TryGetComponent<GsplatRenderer>(out var activeSplat))
                     {
                         if (activeSplat.transform == transform.parent)
                             color.a = 0.5f;
