@@ -217,7 +217,9 @@ namespace Gsplat
 
             res.CutoutsData = updatedCutoutsData;
 
-            m_prePass.Dispatch(res.OrderBuffer, res.PackedSplatsBuffer, ref res.PrePassResources.CutoutsBuffer, res.CutoutsData, (int)gs.SplatCount);
+            var prePassResources = res.PrePassResources;
+            m_prePass.Dispatch(res.OrderBuffer, res.PackedSplatsBuffer, ref prePassResources, res.CutoutsData, (int)gs.SplatCount);
+            res.PrePassResources = prePassResources;
             gs.RemainingCount = m_prePass.ExtractOrderSize(res.OrderBuffer, res.PrePassResources);
         }
 

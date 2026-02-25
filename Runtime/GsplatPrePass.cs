@@ -64,30 +64,30 @@ namespace Gsplat
             }
         }
 
-        void UpdateCutoutsBuffer(ref GraphicsBuffer cutoutsBuffer, GsplatCutout.ShaderData[] cutouts)
+        void UpdateCutoutsBuffer(ref SupportResources res, GsplatCutout.ShaderData[] cutouts)
         {
             int numberOfCutouts = cutouts.Length;
             int bufferSize = Math.Max(numberOfCutouts, 1);
 
-            if (cutoutsBuffer == null || cutoutsBuffer.count != bufferSize)
+            if (res.CutoutsBuffer == null || res.CutoutsBuffer.count != bufferSize)
             {
-                cutoutsBuffer?.Dispose();
-                cutoutsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, bufferSize, GsplatCutout.ShaderDataSize);
+                res.CutoutsBuffer?.Dispose();
+                res.CutoutsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, bufferSize, GsplatCutout.ShaderDataSize);
             }
 
-            cutoutsBuffer.SetData(cutouts);
-            m_CS.SetBuffer(m_kernelPreCompute, k_cutoutsBuffer, cutoutsBuffer);
+            res.CutoutsBuffer.SetData(cutouts);
+            m_CS.SetBuffer(m_kernelPreCompute, k_cutoutsBuffer, res.CutoutsBuffer);
             m_CS.SetInt(k_splatCutoutsCount, numberOfCutouts);
         }
 
-        public void Dispatch(GraphicsBuffer orderBuffer, GraphicsBuffer packedSplats, ref GraphicsBuffer cutoutsBuffer, GsplatCutout.ShaderData[] cutouts, int splatCount)
+        public void Dispatch(GraphicsBuffer orderBuffer, GraphicsBuffer packedSplats, ref SupportResources res, GsplatCutout.ShaderData[] cutouts, int splatCount)
         {
             Assert.IsTrue(Valid);
             orderBuffer.SetCounterValue(0);
 
             int threadBlocks = GsplatUtils.DivRoundUp(splatCount, 1024);
 
-            UpdateCutoutsBuffer(ref cutoutsBuffer, cutouts);
+            UpdateCutoutsBuffer(ref res, cutouts);
             m_CS.SetInt(k_count, splatCount);
             m_CS.SetBuffer(m_kernelPreCompute, k_orderBuffer, orderBuffer);
             m_CS.SetBuffer(m_kernelPreCompute, k_packedSplatsBuffer, packedSplats);
