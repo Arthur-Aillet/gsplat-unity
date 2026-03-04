@@ -5,12 +5,14 @@
 // Copyright (c) 2026 Arthur Aillet
 // SPDX-License-Identifier: MIT
 
+using System.Collections.Generic;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEditor;
 using UnityEngine;
 
 namespace Gsplat
 {
+    [ExecuteInEditMode]
     public class GsplatCutout : MonoBehaviour
     {
         public enum Type
@@ -19,8 +21,17 @@ namespace Gsplat
             Box
         }
 
-        public Type m_Type = Type.Ellipsoid;
+        public enum Target
+        {
+            Parent,
+            All,
+            Specific
+        }
+
         public bool m_Invert = false;
+        public Type m_Type = Type.Ellipsoid;
+        public Target m_Target = Target.Parent;
+        [HideInInspector] public GsplatRenderer m_SpecifcRenderer = null;
 
         public static int ShaderDataSize { get { return UnsafeUtility.SizeOf<ShaderData>(); } }
 
@@ -28,6 +39,24 @@ namespace Gsplat
         {
             public Matrix4x4 matrix;
             public uint typeAndFlags;
+        }
+
+        public static List<GsplatCutout> m_RegisteredCutouts = new() { };
+
+        void OnEnable()
+        {
+            if (!m_RegisteredCutouts.Contains(this))
+            {
+                m_RegisteredCutouts.Add(this);
+            }
+        }
+
+        void OnDisable()
+        {
+            if (m_RegisteredCutouts.Contains(this))
+            {
+                m_RegisteredCutouts.Remove(this);
+            }
         }
 
         public ShaderData GetShaderData(Matrix4x4 rendererMatrix)
@@ -49,10 +78,22 @@ namespace Gsplat
         {
             Gizmos.matrix = transform.localToWorldMatrix;
             Color color;
-            if (transform.parent?.GetComponent<GsplatRenderer>() == null)
-                color = Color.red;
+            if (m_Target == Target.Parent)
+            {
+                if (transform.parent?.GetComponent<GsplatRenderer>() == null)
+                    color = Color.red;
+                else
+                    color = Color.magenta;
+            }
+            else if (m_Target == Target.All)
+                color = Color.orange;
             else
-                color = Color.magenta;
+            {
+                if (m_SpecifcRenderer == null)
+                    color = Color.red;
+                else
+                    color = Color.cyan;
+            }
 
             color.a = 0.2f;
             if (Selection.Contains(gameObject))

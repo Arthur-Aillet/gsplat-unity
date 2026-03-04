@@ -36,7 +36,14 @@ namespace Gsplat
         {
             get
             {
-                return transform.GetComponentsInChildren<GsplatCutout>(includeInactive: false).Where(component => component.enabled).ToArray();
+                var cutouts = GsplatCutout.m_RegisteredCutouts
+                    .Where(component => component.enabled)
+                    .Where(component =>
+                        component.m_Target == GsplatCutout.Target.All ||
+                        (component.m_Target == GsplatCutout.Target.Parent && component.transform.parent == transform) ||
+                        (component.m_Target == GsplatCutout.Target.Specific && component.m_SpecifcRenderer == this)
+                    );
+                return cutouts.ToArray();
             }
         }
 
