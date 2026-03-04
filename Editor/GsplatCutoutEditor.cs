@@ -31,7 +31,7 @@ namespace Gsplat.Editor
             if (cutout.m_Target == GsplatCutout.Target.Specific)
             {
                 cutout.m_SpecifcRenderer = (GsplatRenderer)EditorGUILayout.ObjectField(
-                    cutout.m_SpecifcRenderer, typeof(GsplatRenderer), false);
+                    cutout.m_SpecifcRenderer, typeof(GsplatRenderer), true);
             }
         }
     }
