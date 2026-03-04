@@ -24,12 +24,14 @@ namespace Gsplat
         public enum Target
         {
             Parent,
-            All
+            All,
+            Specific
         }
 
+        public bool m_Invert = false;
         public Type m_Type = Type.Ellipsoid;
         public Target m_Target = Target.Parent;
-        public bool m_Invert = false;
+        [HideInInspector] public GsplatRenderer m_SpecifcRenderer = null;
 
         public static int ShaderDataSize { get { return UnsafeUtility.SizeOf<ShaderData>(); } }
 
@@ -39,18 +41,21 @@ namespace Gsplat
             public uint typeAndFlags;
         }
 
-        public static List<GsplatCutout> m_GlobalCutouts = new() { };
+        public static List<GsplatCutout> m_RegisteredCutouts = new() { };
 
-        void Update()
+        void OnEnable()
         {
-            if (m_Target == Target.All && !m_GlobalCutouts.Contains(this))
+            if (!m_RegisteredCutouts.Contains(this))
             {
-                m_GlobalCutouts.Add(this);
+                m_RegisteredCutouts.Add(this);
             }
+        }
 
-            if (m_Target == Target.Parent && m_GlobalCutouts.Contains(this))
+        void OnDisable()
+        {
+            if (m_RegisteredCutouts.Contains(this))
             {
-                m_GlobalCutouts.Remove(this);
+                m_RegisteredCutouts.Remove(this);
             }
         }
 
@@ -80,9 +85,14 @@ namespace Gsplat
                 else
                     color = Color.magenta;
             }
+            else if (m_Target == Target.All)
+                color = Color.orange;
             else
             {
-                color = Color.orange;
+                if (m_SpecifcRenderer == null)
+                    color = Color.red;
+                else
+                    color = Color.cyan;
             }
 
             color.a = 0.2f;
