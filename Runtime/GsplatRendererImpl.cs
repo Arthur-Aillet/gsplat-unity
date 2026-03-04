@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 using System;
+using Unity.Collections;
 using UnityEngine;
 
 namespace Gsplat
@@ -35,6 +36,10 @@ namespace Gsplat
         static readonly int k_splatCount = Shader.PropertyToID("_SplatCount");
         static readonly int k_splatInstanceSize = Shader.PropertyToID("_SplatInstanceSize");
         static readonly int k_gammaToLinear = Shader.PropertyToID("_GammaToLinear");
+        static readonly int k_sizeTreshold = Shader.PropertyToID("_SizeThreshold");
+        static readonly int k_cullArea = Shader.PropertyToID("_CullArea");
+        static readonly int k_frustrumMultiplier = Shader.PropertyToID("_FrustrumMultiplier");
+        static readonly int k_alphaCulling = Shader.PropertyToID("_AlphaCulling");
 
         public GsplatRendererImpl(uint splatCount, byte shBands)
         {
@@ -114,7 +119,7 @@ namespace Gsplat
         /// <param name="gammaToLinear">Covert color space from Gamma to Linear.</param>
         /// <param name="shDegree">Order of SH coefficients used for rendering. The final value is capped by the SHBands property.</param>
         public void Render(uint splatCount, Transform transform, Bounds localBounds, int layer,
-            bool gammaToLinear = false, int shDegree = 3)
+            bool gammaToLinear = false, float sizeTreshold = 1.0f, float cullArea = 2.0f, float frustrumMultiplier = 1.0f, float alphaCulling = 1.0f, int shDegree = 3)
         {
             if (!Valid || !GsplatSettings.Instance.Valid || !GsplatComputeManager.Instance.Valid || splatCount <= 0)
                 return;
@@ -122,6 +127,10 @@ namespace Gsplat
             m_propertyBlock.SetInteger(k_splatCount, (int)splatCount);
             m_propertyBlock.SetInteger(k_splatInstanceSize, (int)GsplatSettings.Instance.SplatInstanceSize);
             m_propertyBlock.SetInteger(k_gammaToLinear, gammaToLinear ? 1 : 0);
+            m_propertyBlock.SetFloat(k_sizeTreshold, sizeTreshold);
+            m_propertyBlock.SetFloat(k_cullArea, cullArea);
+            m_propertyBlock.SetFloat(k_frustrumMultiplier, frustrumMultiplier);
+            m_propertyBlock.SetFloat(k_alphaCulling, alphaCulling / 255.0f);
             m_propertyBlock.SetMatrix(k_matrixM, transform.localToWorldMatrix);
             var rp = new RenderParams(GsplatSettings.Instance.Materials[Math.Min(SHBands, shDegree)])
             {
@@ -131,7 +140,7 @@ namespace Gsplat
             };
 
             Graphics.RenderMeshPrimitives(rp, GsplatSettings.Instance.Mesh, 0,
-                Mathf.CeilToInt(splatCount / (float)GsplatSettings.Instance.SplatInstanceSize));
+                 Mathf.CeilToInt(splatCount / (float)GsplatSettings.Instance.SplatInstanceSize));
         }
     }
 }

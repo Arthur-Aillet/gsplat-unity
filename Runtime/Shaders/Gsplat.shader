@@ -29,6 +29,10 @@ Shader "Gsplat/Standard"
             #include "Unpack.hlsl"
 
             bool _GammaToLinear;
+            float _SizeThreshold;
+            float _CullArea;
+            float _FrustrumMultiplier;
+            float _AlphaCulling;
             uint _SplatCount;
             uint _SplatInstanceSize;
             float4x4 _MATRIX_M;
@@ -59,6 +63,13 @@ Shader "Gsplat/Standard"
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
+            struct SplatSource
+            {
+                uint order;
+                uint id;
+                float2 uv;
+            };
+
             bool InitSource(appdata v, out SplatSource source)
             {
                 #if !defined(UNITY_INSTANCING_ENABLED) && !defined(UNITY_PROCEDURAL_INSTANCING_ENABLED) && !defined(UNITY_STEREO_INSTANCING_ENABLED)
@@ -71,7 +82,7 @@ Shader "Gsplat/Standard"
                     return false;
 
                 source.id = _OrderBuffer[source.order];
-                source.cornerUV = float2(v.vertex.x, v.vertex.y);
+                source.uv = float2(v.vertex.x, v.vertex.y);
                 return true;
             }
 
@@ -114,11 +125,19 @@ Shader "Gsplat/Standard"
                     return o;
                 }
 
+                source.uv *=  _SizeThreshold;
+
                 uint4 packedSplat = _PackedSplatsBuffer[source.id];
 
                 float3 modelCenter, scale;
                 float4 color, quat;
                 UnpackSplat(packedSplat, color, modelCenter, scale, quat);
+
+                if (color.a < _AlphaCulling)
+                {
+                    o.vertex = discardVec;
+                    return o;
+                }
 
                 SplatCenter center;
                 if (!InitCenter(modelCenter, center))
@@ -129,7 +148,7 @@ Shader "Gsplat/Standard"
 
                 SplatCovariance cov = CalcCovariance(quat, scale);
                 SplatCorner corner;
-                if (!InitCorner(source, cov, center, corner))
+                if (!InitCorner(source.uv, cov, center, corner, _CullArea, _FrustrumMultiplier))
                 {
                     o.vertex = discardVec;
                     return o;
@@ -163,9 +182,18 @@ Shader "Gsplat/Standard"
             float4 frag(v2f i) : SV_Target
             {
                 float A = dot(i.uv, i.uv);
+
                 if (A > 1.0) discard;
-                float alpha = exp(-A * 4.0) * i.color.a;
+
+                float2 absUV = abs(i.uv);
+                float maxUV = max(absUV.x, absUV.y);
+
+                float falloff = -exp((maxUV - _SizeThreshold * 1.16) * 25 * _SizeThreshold);
+                float alpha = exp(-A * 4.0) + falloff;
+                alpha *= i.color.a;
+
                 if (alpha < 1.0 / 255.0) discard;
+
                 if (_GammaToLinear)
                     return float4(GammaToLinearSpace(i.color.rgb) * alpha, alpha);
                 return float4(i.color.rgb * alpha, alpha);
