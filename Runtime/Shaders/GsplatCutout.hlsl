@@ -21,13 +21,13 @@ bool IsSplatCut(float3 pos)
         float3 cutoutPos = mul(cutData.mat, float4(pos, 1)).xyz;
         if (type == SPLAT_CUTOUT_TYPE_ELLIPSOID)
         {
-            invert = (dot(cutoutPos, cutoutPos) <= 1) != invert;
+            invert = (dot(cutoutPos, cutoutPos) <= 1) == invert;
         }
         if (type == SPLAT_CUTOUT_TYPE_BOX)
         {
-            invert = (all(abs(cutoutPos) <= 1)) != invert;
+            invert = (all(abs(cutoutPos) <= 1)) == invert;
         }
-        finalCut = finalCut | !invert;
+        finalCut = finalCut | invert;
     }
     return finalCut;
 }
