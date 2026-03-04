@@ -182,6 +182,9 @@ namespace Gsplat
 
         public void DispatchPrePass(IGsplat gs)
         {
+            if (m_prePass == null || !m_prePass.Valid)
+                return;
+
             var res = (Resource)gs.Resource;
 
             if (gs.cutouts.Length == 0)
