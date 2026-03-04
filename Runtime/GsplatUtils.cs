@@ -50,6 +50,8 @@ namespace Gsplat
 
         public static int DivRoundUp(int x, int y) => (x + y - 1) / y;
 
+        public static readonly int[] SHBandSize = { 3, 5, 7 };
+
         public static Bounds CalcWorldBounds(Bounds localBounds, Transform transform)
         {
             var localCenter = localBounds.center;

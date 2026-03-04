@@ -11,7 +11,8 @@ namespace Gsplat
     public class GsplatRenderer : MonoBehaviour, IGsplat
     {
         public GsplatAsset GsplatAsset;
-        [Range(0, 3)] public int SHDegree = 3;
+        [HideInInspector] public int SHDegree = 3;
+
         public bool GammaToLinear;
         public bool AsyncUpload;
 
@@ -44,8 +45,12 @@ namespace Gsplat
         void SetBufferData()
         {
             m_renderer.PackedSplatsBuffer.SetData(GsplatAsset.PackedSplats);
-            if (GsplatAsset.SHBands > 0)
-                m_renderer.SHBuffer.SetData(GsplatAsset.SHs);
+            if (GsplatAsset.SHBands >= 1)
+                m_renderer.PackedSH1Buffer.SetData(GsplatAsset.PackedSH1);
+            if (GsplatAsset.SHBands >= 2)
+                m_renderer.PackedSH2Buffer.SetData(GsplatAsset.PackedSH2);
+            if (GsplatAsset.SHBands == 3)
+                m_renderer.PackedSH3Buffer.SetData(GsplatAsset.PackedSH3);
         }
 
         void SetBufferDataAsync()
@@ -59,10 +64,13 @@ namespace Gsplat
             var count = (int)Math.Min(UploadBatchSize, m_pendingSplatCount);
             m_pendingSplatCount -= (uint)count;
             m_renderer.PackedSplatsBuffer.SetData(GsplatAsset.PackedSplats, offset, offset, count);
-            if (GsplatAsset.SHBands <= 0) return;
-            var coefficientCount = GsplatUtils.SHBandsToCoefficientCount(GsplatAsset.SHBands);
-            m_renderer.SHBuffer.SetData(GsplatAsset.SHs, coefficientCount * offset,
-                coefficientCount * offset, coefficientCount * count);
+
+            if (GsplatAsset.SHBands >= 1)
+                m_renderer.PackedSH1Buffer.SetData(GsplatAsset.PackedSH1, 2 * offset, 2 * offset, 2 * count);
+            if (GsplatAsset.SHBands >= 2)
+                m_renderer.PackedSH2Buffer.SetData(GsplatAsset.PackedSH2, 4 * offset, 4 * offset, 4 * count);
+            if (GsplatAsset.SHBands == 3)
+                m_renderer.PackedSH3Buffer.SetData(GsplatAsset.PackedSH3, 4 * offset, 4 * offset, 4 * count);
         }
 
         void OnEnable()
