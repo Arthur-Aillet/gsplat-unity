@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Arthur Aillet
 // SPDX-License-Identifier: MIT
 
+using System;
 using UnityEditor;
 using UnityEngine;
 
@@ -13,17 +14,18 @@ namespace Gsplat.Editor
         {
             DrawDefaultInspector();
 
-            var cutout = target as GameObject;
-            if (!cutout)
+            var cutout = target as GsplatCutout;
+
+            if (cutout == null)
                 return;
 
-            if (cutout.transform.parent.GetComponent<GsplatRenderer>() == null)
+            if (cutout.gameObject.transform.parent?.GetComponent<GsplatRenderer>() == null && cutout.m_Target == GsplatCutout.Target.Parent)
             {
                 EditorGUI.indentLevel++;
                 GUI.contentColor = Color.softRed;
                 GUIStyle textStyle = EditorStyles.boldLabel;
                 textStyle.clipping = TextClipping.Clip;
-                GUILayout.Label("No GsplatRenderer could be found in this object's parents.", textStyle);
+                GUILayout.Label("No GsplatRenderer could be found in this object parent.", textStyle);
             }
         }
     }

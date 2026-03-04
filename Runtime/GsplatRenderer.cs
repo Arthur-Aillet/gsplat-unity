@@ -35,7 +35,12 @@ namespace Gsplat
         {
             get
             {
-                return transform.GetComponentsInChildren<GsplatCutout>(includeInactive: false).Where(component => component.enabled).ToArray();
+                var cutouts = transform.GetComponentsInChildren<GsplatCutout>(includeInactive: false).Where(component => component.enabled);
+                if (GsplatCutout.m_GlobalCutouts.Count > 0)
+                {
+                    cutouts = cutouts.Concat(GsplatCutout.m_GlobalCutouts);
+                }
+                return cutouts.ToArray();
             }
         }
 

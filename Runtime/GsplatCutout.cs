@@ -5,12 +5,14 @@
 // Copyright (c) 2026 Arthur Aillet
 // SPDX-License-Identifier: MIT
 
+using System.Collections.Generic;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEditor;
 using UnityEngine;
 
 namespace Gsplat
 {
+    [ExecuteInEditMode]
     public class GsplatCutout : MonoBehaviour
     {
         public enum Type
@@ -19,7 +21,14 @@ namespace Gsplat
             Box
         }
 
+        public enum Target
+        {
+            Parent,
+            All
+        }
+
         public Type m_Type = Type.Ellipsoid;
+        public Target m_Target = Target.Parent;
         public bool m_Invert = false;
 
         public static int ShaderDataSize { get { return UnsafeUtility.SizeOf<ShaderData>(); } }
@@ -28,6 +37,21 @@ namespace Gsplat
         {
             public Matrix4x4 matrix;
             public uint typeAndFlags;
+        }
+
+        public static List<GsplatCutout> m_GlobalCutouts = new() { };
+
+        void Update()
+        {
+            if (m_Target == Target.All && !m_GlobalCutouts.Contains(this))
+            {
+                m_GlobalCutouts.Add(this);
+            }
+
+            if (m_Target == Target.Parent && m_GlobalCutouts.Contains(this))
+            {
+                m_GlobalCutouts.Remove(this);
+            }
         }
 
         public ShaderData GetShaderData(Matrix4x4 rendererMatrix)
@@ -49,10 +73,17 @@ namespace Gsplat
         {
             Gizmos.matrix = transform.localToWorldMatrix;
             Color color;
-            if (transform.parent?.GetComponent<GsplatRenderer>() == null)
-                color = Color.red;
+            if (m_Target == Target.Parent)
+            {
+                if (transform.parent?.GetComponent<GsplatRenderer>() == null)
+                    color = Color.red;
+                else
+                    color = Color.magenta;
+            }
             else
-                color = Color.magenta;
+            {
+                color = Color.orange;
+            }
 
             color.a = 0.2f;
             if (Selection.Contains(gameObject))
