@@ -12,7 +12,7 @@ namespace Gsplat
     public interface IGsplat
     {
         public Transform transform { get; }
-        public GsplatCutout[] cutouts { get; }
+        public GsplatCutout[] Cutouts { get; }
         public uint SplatCount { get; }
         public uint RemainingCount { get; set; }
         public IComputeManagerResource Resource { get; }
@@ -187,7 +187,7 @@ namespace Gsplat
 
             var res = (Resource)gs.Resource;
 
-            if (gs.cutouts.Length == 0)
+            if (gs.Cutouts.Length == 0)
             {
                 if (res.HandlingCutouts == true)
                 {
@@ -202,11 +202,11 @@ namespace Gsplat
             if (res.HandlingCutouts == false)
                 res.HandlingCutouts = true;
 
-            GsplatCutout.ShaderData[] updatedCutoutsData = new GsplatCutout.ShaderData[gs.cutouts.Length];
+            GsplatCutout.ShaderData[] updatedCutoutsData = new GsplatCutout.ShaderData[gs.Cutouts.Length];
             bool cutoutsUnchanged = res.CutoutsData.Length == updatedCutoutsData.Length;
-            for (int i = 0; i != gs.cutouts.Length; i++)
+            for (int i = 0; i != gs.Cutouts.Length; i++)
             {
-                updatedCutoutsData[i] = gs.cutouts[i].GetShaderData(gs.transform.localToWorldMatrix);
+                updatedCutoutsData[i] = gs.Cutouts[i].GetShaderData(gs.transform.localToWorldMatrix);
                 if (cutoutsUnchanged)
                     if (updatedCutoutsData[i].matrix != res.CutoutsData[i].matrix || updatedCutoutsData[i].typeAndFlags != res.CutoutsData[i].typeAndFlags)
                         cutoutsUnchanged = false;

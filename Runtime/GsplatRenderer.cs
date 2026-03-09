@@ -32,7 +32,7 @@ namespace Gsplat
 
         public IComputeManagerResource Resource => m_renderer.Resource;
 
-        public GsplatCutout[] cutouts
+        public GsplatCutout[] Cutouts
         {
             get
             {
