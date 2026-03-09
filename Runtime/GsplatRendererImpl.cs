@@ -113,6 +113,7 @@ namespace Gsplat
         /// <param name="layer">Layer used for rendering.</param>
         /// <param name="gammaToLinear">Covert color space from Gamma to Linear.</param>
         /// <param name="shDegree">Order of SH coefficients used for rendering. The final value is capped by the SHBands property.</param>
+        /// <param name="renderOrder">Manual render order placement of the gsplat. The final value is capped by the maximum render order setting.</param>
         public void Render(uint splatCount, Transform transform, Bounds localBounds, int layer,
             bool gammaToLinear = false, int shDegree = 3, uint renderOrder = 0)
         {

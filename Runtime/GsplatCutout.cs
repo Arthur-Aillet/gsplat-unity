@@ -86,7 +86,7 @@ namespace Gsplat
                     color = Color.magenta;
             }
             else if (m_Target == Target.All)
-                color = Color.orange;
+                color = new Color(1f, 0.6470588f, 0f, 1f);
             else
             {
                 if (m_SpecifcRenderer == null)
