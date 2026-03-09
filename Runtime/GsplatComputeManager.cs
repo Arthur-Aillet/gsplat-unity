@@ -18,6 +18,7 @@ namespace Gsplat
         public IComputeManagerResource Resource { get; }
         public bool isActiveAndEnabled { get; }
         public bool Valid { get; }
+        public bool ComputeRequired { get; }
     }
 
     public interface IComputeManagerResource
@@ -158,7 +159,7 @@ namespace Gsplat
             {
                 var res = (Resource)gs.Resource;
 
-                if (gs.RemainingCount <= 0)
+                if (!gs.ComputeRequired || gs.RemainingCount <= 0)
                     continue;
 
                 if (res.WaitForInit)
@@ -183,6 +184,9 @@ namespace Gsplat
         public void DispatchPrePass(IGsplat gs)
         {
             if (m_prePass == null || !m_prePass.Valid)
+                return;
+
+            if (!gs.ComputeRequired)
                 return;
 
             var res = (Resource)gs.Resource;

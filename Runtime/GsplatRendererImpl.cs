@@ -29,6 +29,8 @@ namespace Gsplat
         static readonly int k_splatInstanceSize = Shader.PropertyToID("_SplatInstanceSize");
         static readonly int k_gammaToLinear = Shader.PropertyToID("_GammaToLinear");
         static readonly int k_shDegree = Shader.PropertyToID("_SHDegree");
+        private uint m_framesBeforeRecompute = 0;
+        public bool ComputeRequired = true;
 
         public GsplatRendererImpl(uint splatCount, byte shBands)
         {
@@ -81,6 +83,27 @@ namespace Gsplat
             PackedSplatsBuffer = null;
             SHBuffer = null;
             OrderBuffer = null;
+        }
+
+        public void EvaluateComputeRequired(GsplatRenderer.GsplatSortMode mode, uint sortRefreshRate)
+        {
+            if (mode == GsplatRenderer.GsplatSortMode.Always)
+            {
+                ComputeRequired = true;
+            }
+            else
+            {
+                if (m_framesBeforeRecompute == 0)
+                {
+                    m_framesBeforeRecompute = sortRefreshRate;
+                    ComputeRequired = true;
+                }
+                else
+                {
+                    m_framesBeforeRecompute -= 1;
+                    ComputeRequired = false;
+                }
+            }
         }
 
         /// <summary>

@@ -10,12 +10,19 @@ namespace Gsplat
     [ExecuteAlways]
     public class GsplatRenderer : MonoBehaviour, IGsplat
     {
+        public enum GsplatSortMode
+        {
+            Always,
+            EachNFrames
+        }
+
         public GsplatAsset GsplatAsset;
         [Range(0, 3)] public int SHDegree = 3;
         [HideInInspector] public uint RenderOrder = 0;
         public bool GammaToLinear;
         public bool AsyncUpload;
-
+        public GsplatSortMode SortMode = GsplatSortMode.Always;
+        [HideInInspector] public uint SortRefreshRate = 20;
         [Tooltip("Max splat count to be uploaded per frame")]
         public uint UploadBatchSize = 100000;
 
@@ -31,7 +38,7 @@ namespace Gsplat
         public uint RemainingCount { get => m_remainingCount; set => m_remainingCount = value; }
 
         public IComputeManagerResource Resource => m_renderer.Resource;
-
+        public bool ComputeRequired => m_renderer.ComputeRequired;
         public GsplatCutout[] cutouts
         {
             get
@@ -123,6 +130,7 @@ namespace Gsplat
 
             if (Valid)
             {
+                m_renderer.EvaluateComputeRequired(SortMode, SortRefreshRate);
                 GsplatComputeManager.Instance.DispatchPrePass(this);
                 m_renderer.Render(m_remainingCount, transform, GsplatAsset.Bounds,
                     gameObject.layer, GammaToLinear, SHDegree, RenderOrder);
