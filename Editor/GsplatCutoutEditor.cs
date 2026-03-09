@@ -22,7 +22,7 @@ namespace Gsplat.Editor
             if (cutout.m_Target == GsplatCutout.Target.Parent && cutout.gameObject.transform.parent?.GetComponent<GsplatRenderer>() == null)
             {
                 EditorGUI.indentLevel++;
-                GUI.contentColor = Color.softRed;
+                GUI.contentColor = new Color(0.8627452f, 0.1921569f, 0.1960784f, 1f);
                 GUIStyle textStyle = EditorStyles.boldLabel;
                 textStyle.clipping = TextClipping.Clip;
                 GUILayout.Label("No GsplatRenderer could be found in this object parent.", textStyle);
