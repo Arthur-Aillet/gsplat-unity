@@ -121,12 +121,12 @@ namespace Gsplat
                 }
             }
 
-            GsplatComputeManager.Instance.DispatchPrePass(this);
-
             if (Valid)
+            {
+                GsplatComputeManager.Instance.DispatchPrePass(this);
                 m_renderer.Render(m_remainingCount, transform, GsplatAsset.Bounds,
                     gameObject.layer, GammaToLinear, SHDegree, RenderOrder);
-
+            }
         }
     }
 }
