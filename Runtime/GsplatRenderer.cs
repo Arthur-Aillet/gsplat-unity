@@ -10,6 +10,12 @@ namespace Gsplat
     [ExecuteAlways]
     public class GsplatRenderer : MonoBehaviour, IGsplat
     {
+        public enum GsplatSortMode
+        {
+            Always,
+            EachNFrames
+        }
+
         public GsplatAsset GsplatAsset;
         [HideInInspector] public int SHDegree = 3;
         [HideInInspector] public uint RenderOrder = 0;
@@ -21,7 +27,8 @@ namespace Gsplat
         [Range(1.0f, 70.0f)] public float AlphaCulling = 1.0f;
         public bool GammaToLinear;
         public bool AsyncUpload;
-
+        public GsplatSortMode SortMode = GsplatSortMode.Always;
+        [HideInInspector] public uint SortRefreshRate = 20;
         [Tooltip("Max splat count to be uploaded per frame")]
         public uint UploadBatchSize = 100000;
 
@@ -37,6 +44,7 @@ namespace Gsplat
         public uint RemainingCount { get => m_remainingCount; set => m_remainingCount = value; }
 
         public IComputeManagerResource Resource => m_renderer.Resource;
+        public bool ComputeRequired => m_renderer.ComputeRequired;
 
         public GsplatCutout[] Cutouts
         {
@@ -52,11 +60,6 @@ namespace Gsplat
                 return cutouts.ToArray();
             }
         }
-
-        private uint framesBeforeRecompute = 0;
-        private bool m_computeRequired = true;
-        public bool ComputeRequired => m_computeRequired;
-
         uint m_pendingSplatCount;
 
         void SetBufferData()
@@ -92,7 +95,6 @@ namespace Gsplat
 
         void OnEnable()
         {
-            framesBeforeRecompute = 0;
             GsplatComputeManager.Instance.RegisterGsplat(this);
             if (!GsplatAsset)
                 return;
@@ -112,23 +114,6 @@ namespace Gsplat
             GsplatComputeManager.Instance.UnregisterGsplat(this);
             m_renderer?.Dispose();
             m_renderer = null;
-        }
-
-        private bool IsComputeRequired()
-        {
-            if (GsplatSettings.Instance.SortPass == 0)
-            {
-                return true;
-            } else if (GsplatSettings.Instance.SortPass == 1)
-            {
-                if (framesBeforeRecompute == 0)
-                {
-                    framesBeforeRecompute = 20;
-                    return true;
-                }
-                framesBeforeRecompute -= 1;
-            }
-            return false;
         }
 
         void Update()
@@ -158,7 +143,7 @@ namespace Gsplat
 
             if (Valid)
             {
-                m_computeRequired = IsComputeRequired();
+                m_renderer.EvaluateComputeRequired(SortMode, SortRefreshRate);
                 GsplatComputeManager.Instance.DispatchPrePass(this);
                 m_renderer.Render(m_remainingCount, transform, GsplatAsset.Bounds,
                     gameObject.layer, GammaToLinear, SizeTreshold, CullArea, FrustrumMultiplier, AlphaCulling, SHDegree, RenderOrder);

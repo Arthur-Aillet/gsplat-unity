@@ -157,12 +157,9 @@ namespace Gsplat
         {
             foreach (var gs in m_activeGsplats)
             {
-                if (!gs.ComputeRequired)
-                    return;
-
                 var res = (Resource)gs.Resource;
 
-                if (gs.RemainingCount <= 0)
+                if (!gs.ComputeRequired || gs.RemainingCount <= 0)
                     continue;
 
                 if (res.WaitForInit)
@@ -186,10 +183,10 @@ namespace Gsplat
 
         public void DispatchPrePass(IGsplat gs)
         {
-            if (!gs.ComputeRequired)
+            if (m_prePass == null || !m_prePass.Valid)
                 return;
 
-            if (m_prePass == null || !m_prePass.Valid)
+            if (!gs.ComputeRequired)
                 return;
 
             var res = (Resource)gs.Resource;

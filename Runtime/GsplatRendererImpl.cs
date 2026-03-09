@@ -40,6 +40,8 @@ namespace Gsplat
         static readonly int k_cullArea = Shader.PropertyToID("_CullArea");
         static readonly int k_frustrumMultiplier = Shader.PropertyToID("_FrustrumMultiplier");
         static readonly int k_alphaCulling = Shader.PropertyToID("_AlphaCulling");
+        private uint m_framesBeforeRecompute = 0;
+        public bool ComputeRequired = true;
 
         public GsplatRendererImpl(uint splatCount, byte shBands)
         {
@@ -107,6 +109,27 @@ namespace Gsplat
             PackedSH2Buffer = null;
             PackedSH3Buffer = null;
             OrderBuffer = null;
+        }
+
+        public void EvaluateComputeRequired(GsplatRenderer.GsplatSortMode mode, uint sortRefreshRate)
+        {
+            if (mode == GsplatRenderer.GsplatSortMode.Always)
+            {
+                ComputeRequired = true;
+            }
+            else
+            {
+                if (m_framesBeforeRecompute == 0)
+                {
+                    m_framesBeforeRecompute = sortRefreshRate;
+                    ComputeRequired = true;
+                }
+                else
+                {
+                    m_framesBeforeRecompute -= 1;
+                    ComputeRequired = false;
+                }
+            }
         }
 
         /// <summary>

@@ -18,6 +18,10 @@ namespace Gsplat.Editor
 
             var renderer = (GsplatRenderer)target;
 
+            // Sort Refresh Rate slider only if the sort is each N Frames
+            if (renderer.SortMode == GsplatRenderer.GsplatSortMode.EachNFrames)
+                renderer.SortRefreshRate = (uint)EditorGUILayout.IntSlider(new GUIContent("Sort Refresh Rate"), (int)renderer.SortRefreshRate, 1, 40);
+
             // Cap the SHDegree slider to the asset SHBands
             if (renderer.GsplatAsset != null && renderer.GsplatAsset.SHBands > 0)
                 renderer.SHDegree = (byte)EditorGUILayout.IntSlider(new GUIContent("SH Degree"), renderer.SHDegree, 0, renderer.GsplatAsset.SHBands);
