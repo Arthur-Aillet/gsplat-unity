@@ -58,7 +58,7 @@ namespace Gsplat
         public ComputeShader PrePassComputeShader;
         public uint SplatInstanceSize = 128;
         public bool ShowImportErrors = true;
-        public Material[] Materials { get; private set; }
+        public Material[][] Materials { get; private set; }
         public Mesh Mesh { get; private set; }
 
         public bool Valid => Materials?.Length != 0 && Mesh && SplatInstanceSize > 0;
@@ -98,8 +98,9 @@ namespace Gsplat
         void CreateMaterials()
         {
             if (Materials != null)
-                foreach (var mat in Materials)
-                    DestroyImmediate(mat);
+                foreach (var materials in Materials)
+                    foreach (var mat in materials)
+                        DestroyImmediate(mat);
 
             if (!Shader)
             {
@@ -107,11 +108,16 @@ namespace Gsplat
                 return;
             }
 
-            Materials = new Material[4];
+            Materials = new Material[4][];
             for (var i = 0; i < 4; ++i)
             {
-                Materials[i] = new Material(Shader) { hideFlags = HideFlags.HideAndDontSave };
-                Materials[i].EnableKeyword($"SH_BANDS_{i}");
+                Materials[i] = new Material[4];
+                for (var j = 0; j < 4; ++j)
+                {
+                    Materials[i][j] = new Material(Shader) { hideFlags = HideFlags.HideAndDontSave };
+                    Materials[i][j].EnableKeyword($"SH_BANDS_{i}");
+                    Materials[i][j].renderQueue = 3000 + j;
+                }
             }
         }
 
