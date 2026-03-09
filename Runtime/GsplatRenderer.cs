@@ -12,7 +12,7 @@ namespace Gsplat
     {
         public GsplatAsset GsplatAsset;
         [HideInInspector] public int SHDegree = 3;
-
+        [HideInInspector] public uint RenderOrder = 0;
         public bool GammaToLinear;
         public bool AsyncUpload;
 
@@ -132,7 +132,7 @@ namespace Gsplat
 
             if (Valid)
                 m_renderer.Render(m_remainingCount, transform, GsplatAsset.Bounds,
-                    gameObject.layer, GammaToLinear, SHDegree);
+                    gameObject.layer, GammaToLinear, SHDegree, RenderOrder);
 
         }
     }

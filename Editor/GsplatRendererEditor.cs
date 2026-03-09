@@ -28,6 +28,10 @@ namespace Gsplat.Editor
                 EditorGUI.EndDisabledGroup();
             }
 
+            // RenderOrder slider depend on the MaxRenderOrder setting
+            if (GsplatSettings.Instance.MaxRenderOrder > 1)
+                renderer.RenderOrder = (uint)EditorGUILayout.IntSlider(new GUIContent("Render Order"), (int)renderer.RenderOrder, 0, (int)GsplatSettings.Instance.MaxRenderOrder);
+
             if (serializedObject.FindProperty(nameof(GsplatRenderer.AsyncUpload)).boolValue)
             {
                 EditorGUI.indentLevel++;
