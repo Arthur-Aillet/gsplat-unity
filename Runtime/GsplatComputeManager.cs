@@ -18,6 +18,7 @@ namespace Gsplat
         public IComputeManagerResource Resource { get; }
         public bool isActiveAndEnabled { get; }
         public bool Valid { get; }
+        public bool ComputeRequired { get; }
     }
 
     public interface IComputeManagerResource
@@ -152,12 +153,13 @@ namespace Gsplat
             DispatchSort(m_commandBuffer, camera);
         }
 
-        public Vector3? camPos = null;
-        public Quaternion? camRot = null;
-        public void TrueDispatchSort(CommandBuffer cmd, Camera camera)
+        public void DispatchSort(CommandBuffer cmd, Camera camera)
         {
             foreach (var gs in m_activeGsplats)
             {
+                if (!gs.ComputeRequired)
+                    return;
+
                 var res = (Resource)gs.Resource;
 
                 if (gs.RemainingCount <= 0)
@@ -184,6 +186,9 @@ namespace Gsplat
 
         public void DispatchPrePass(IGsplat gs)
         {
+            if (!gs.ComputeRequired)
+                return;
+
             if (m_prePass == null || !m_prePass.Valid)
                 return;
 
@@ -225,29 +230,6 @@ namespace Gsplat
             gs.RemainingCount = m_prePass.ExtractOrderSize(res.OrderBuffer, res.PrePassResources);
         }
 
-        public void DispatchSort(CommandBuffer cmd, Camera camera)
-        {
-            if (GsplatSettings.Instance.SortPass == 0)
-            {
-                TrueDispatchSort(cmd, camera);
-            } else if (GsplatSettings.Instance.SortPass == 1)
-            {
-                if (camPos == null)
-                {
-                    camPos = camera.transform.position;
-                    camRot = camera.transform.rotation;
-                    TrueDispatchSort(cmd, camera);
-                } else
-                {
-                    if ((camPos.Value - camera.transform.position).magnitude > .3f || Quaternion.Angle(camRot.Value, camera.transform.rotation) > 15.0f)
-                    {
-                        camPos = camera.transform.position;
-                        camRot = camera.transform.rotation;
-                        TrueDispatchSort(cmd, camera);
-                    }
-                }
-            }
-        }
         public IComputeManagerResource CreateComputeResource(uint count, GraphicsBuffer packedSplatsBuffer, GraphicsBuffer orderBuffer)
         {
             return new Resource(count, packedSplatsBuffer, orderBuffer);

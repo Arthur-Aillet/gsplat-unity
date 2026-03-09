@@ -53,6 +53,10 @@ namespace Gsplat
             }
         }
 
+        private uint framesBeforeRecompute = 0;
+        private bool m_computeRequired = true;
+        public bool ComputeRequired => m_computeRequired;
+
         uint m_pendingSplatCount;
 
         void SetBufferData()
@@ -88,6 +92,7 @@ namespace Gsplat
 
         void OnEnable()
         {
+            framesBeforeRecompute = 0;
             GsplatComputeManager.Instance.RegisterGsplat(this);
             if (!GsplatAsset)
                 return;
@@ -107,6 +112,23 @@ namespace Gsplat
             GsplatComputeManager.Instance.UnregisterGsplat(this);
             m_renderer?.Dispose();
             m_renderer = null;
+        }
+
+        private bool IsComputeRequired()
+        {
+            if (GsplatSettings.Instance.SortPass == 0)
+            {
+                return true;
+            } else if (GsplatSettings.Instance.SortPass == 1)
+            {
+                if (framesBeforeRecompute == 0)
+                {
+                    framesBeforeRecompute = 20;
+                    return true;
+                }
+                framesBeforeRecompute -= 1;
+            }
+            return false;
         }
 
         void Update()
@@ -134,6 +156,7 @@ namespace Gsplat
                 }
             }
 
+            m_computeRequired = IsComputeRequired();
             GsplatComputeManager.Instance.DispatchPrePass(this);
 
             if (Valid)
