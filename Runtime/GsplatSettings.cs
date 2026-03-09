@@ -60,6 +60,8 @@ namespace Gsplat
         public bool ShowImportErrors = true;
         public Material[][] Materials { get; private set; }
         public Mesh Mesh { get; private set; }
+        [Range(1, 20)] public uint MaxRenderOrder = 1;
+        private uint m_prevMaxRenderOrder = 1;
 
         public bool Valid => Materials?.Length != 0 && Mesh && SplatInstanceSize > 0;
 
@@ -111,8 +113,8 @@ namespace Gsplat
             Materials = new Material[4][];
             for (var i = 0; i < 4; ++i)
             {
-                Materials[i] = new Material[4];
-                for (var j = 0; j < 4; ++j)
+                Materials[i] = new Material[MaxRenderOrder];
+                for (var j = 0; j < MaxRenderOrder; ++j)
                 {
                     Materials[i][j] = new Material(Shader) { hideFlags = HideFlags.HideAndDontSave };
                     Materials[i][j].EnableKeyword($"SH_BANDS_{i}");
@@ -123,10 +125,11 @@ namespace Gsplat
 
         void OnValidate()
         {
-            if (Shader != m_prevShader)
+            if (Shader != m_prevShader || MaxRenderOrder != m_prevMaxRenderOrder)
             {
                 CreateMaterials();
                 m_prevShader = Shader;
+                m_prevMaxRenderOrder = MaxRenderOrder;
             }
 
             if (SortComputeShader != m_prevSortComputeShader)
@@ -154,6 +157,7 @@ namespace Gsplat
         {
             CreateMaterials();
             m_prevShader = Shader;
+            m_prevMaxRenderOrder = MaxRenderOrder;
             GsplatComputeManager.Instance.InitSorter(SortComputeShader);
             m_prevSortComputeShader = SortComputeShader;
 

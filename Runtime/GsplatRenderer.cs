@@ -12,7 +12,7 @@ namespace Gsplat
     {
         public GsplatAsset GsplatAsset;
         [Range(0, 3)] public int SHDegree = 3;
-        [Range(0, 3)] public uint RenderOrder = 0;
+        [HideInInspector] public uint RenderOrder = 0;
         public bool GammaToLinear;
         public bool AsyncUpload;
 
