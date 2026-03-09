@@ -12,6 +12,7 @@ namespace Gsplat
     {
         public GsplatAsset GsplatAsset;
         [HideInInspector] public int SHDegree = 3;
+        [HideInInspector] public uint RenderOrder = 0;
 
         [Range(0.0f, 1f)] public float SizeTreshold = 1.0f;
         [Range(2, 75)] public float CullArea = 2.0f;
@@ -137,7 +138,7 @@ namespace Gsplat
 
             if (Valid)
                 m_renderer.Render(m_remainingCount, transform, GsplatAsset.Bounds,
-                    gameObject.layer, GammaToLinear, SizeTreshold, CullArea, FrustrumMultiplier, AlphaCulling, SHDegree);
+                    gameObject.layer, GammaToLinear, SizeTreshold, CullArea, FrustrumMultiplier, AlphaCulling, SHDegree, RenderOrder);
         }
     }
 }
