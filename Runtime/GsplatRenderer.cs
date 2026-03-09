@@ -39,7 +39,8 @@ namespace Gsplat
 
         public IComputeManagerResource Resource => m_renderer.Resource;
         public bool ComputeRequired => m_renderer.ComputeRequired;
-        public GsplatCutout[] cutouts
+
+        public GsplatCutout[] Cutouts
         {
             get
             {
