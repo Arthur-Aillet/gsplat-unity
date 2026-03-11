@@ -42,6 +42,9 @@ namespace Gsplat
 
         private uint m_remainingCount = 0;
         public uint RemainingCount { get => m_remainingCount; set => m_remainingCount = value; }
+        private Bounds m_bounds;
+        public Bounds Bounds { get => m_bounds; set => m_bounds = value; }
+        public Bounds AssetBounds { get => GsplatAsset.Bounds; }
 
         public IComputeManagerResource Resource => m_renderer.Resource;
         public bool ComputeRequired => m_renderer.ComputeRequired;
@@ -116,6 +119,18 @@ namespace Gsplat
             m_renderer = null;
         }
 
+#if UNITY_EDITOR
+        public void OnDrawGizmos()
+        {
+            if (GsplatSettings.Instance.DisplayGSplatsBoundingBoxes && Valid && isActiveAndEnabled)
+            {
+                Gizmos.matrix = transform.localToWorldMatrix;
+                Gizmos.color = Color.green;
+                Gizmos.DrawWireCube(Bounds.center, Bounds.size);
+            }
+        }
+#endif // #if UNITY_EDITOR
+
         void Update()
         {
             if (m_pendingSplatCount > 0)
@@ -145,7 +160,7 @@ namespace Gsplat
             {
                 m_renderer.EvaluateComputeRequired(SortMode, SortRefreshRate);
                 GsplatComputeManager.Instance.DispatchPrePass(this);
-                m_renderer.Render(m_remainingCount, transform, GsplatAsset.Bounds,
+                m_renderer.Render(m_remainingCount, transform, m_bounds,
                     gameObject.layer, GammaToLinear, SizeTreshold, CullArea, FrustrumMultiplier, AlphaCulling, SHDegree, RenderOrder);
             }
         }

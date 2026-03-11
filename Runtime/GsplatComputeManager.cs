@@ -3,6 +3,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using UnityEngine;
 using UnityEngine.PlayerLoop;
 using UnityEngine.Rendering;
@@ -15,6 +16,8 @@ namespace Gsplat
         public GsplatCutout[] Cutouts { get; }
         public uint SplatCount { get; }
         public uint RemainingCount { get; set; }
+        public Bounds Bounds { get; set; }
+        public Bounds AssetBounds { get; }
         public IComputeManagerResource Resource { get; }
         public bool isActiveAndEnabled { get; }
         public bool Valid { get; }
@@ -183,7 +186,7 @@ namespace Gsplat
 
         public void DispatchPrePass(IGsplat gs)
         {
-            if (m_prePass == null || !m_prePass.Valid)
+            if (m_prePass == null || !m_prePass.Valid || !m_sortPass.Valid)
                 return;
 
             if (!gs.ComputeRequired)
@@ -199,6 +202,7 @@ namespace Gsplat
                     res.WaitForInit = true;
                     res.CutoutsData = new GsplatCutout.ShaderData[0];
                     gs.RemainingCount = gs.SplatCount;
+                    gs.Bounds = gs.AssetBounds;
                 }
                 return;
             }
@@ -225,6 +229,7 @@ namespace Gsplat
             m_prePass.Dispatch(res.OrderBuffer, res.PackedSplatsBuffer, ref prePassResources, res.CutoutsData, (int)gs.SplatCount);
             res.PrePassResources = prePassResources;
             gs.RemainingCount = m_prePass.ExtractOrderSize(res.OrderBuffer, res.PrePassResources);
+            gs.Bounds = m_prePass.ExtractBounds(res.PrePassResources);
         }
 
         public IComputeManagerResource CreateComputeResource(uint count, GraphicsBuffer packedSplatsBuffer, GraphicsBuffer orderBuffer)
