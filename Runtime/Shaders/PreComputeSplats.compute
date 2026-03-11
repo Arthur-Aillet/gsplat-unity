@@ -19,6 +19,8 @@ struct GaussianCutoutShaderData
 
 uint _SplatCutoutsCount;
 StructuredBuffer<GaussianCutoutShaderData> _SplatCutouts;
+RWStructuredBuffer<uint> _BoundsBuffer;
+
 #include "GsplatCutout.hlsl"
 
 [numthreads(GROUP_SIZE,1,1)]
@@ -32,10 +34,16 @@ void PreCompute(uint3 id : SV_DispatchThreadID)
     uint word1 = packedSplat.y;
     uint word2 = packedSplat.z;
 
-    float3 modelCenter = float3(f16tof32(word1 & 0xFFFFU), f16tof32((word1 >> 16u) & 0xFFFFU), f16tof32(word2 & 0xFFFFU));
+    float3 splatPos = float3(f16tof32(word1 & 0xFFFFU), f16tof32((word1 >> 16u) & 0xFFFFU), f16tof32(word2 & 0xFFFFU));
 
-    if (!IsSplatCut(modelCenter))
+    if (!IsSplatCut(splatPos))
     {
         _OrderBuffer.Append(idx);
+        InterlockedMin(_BoundsBuffer[0], FloatToSortableUint(splatPos.x));
+        InterlockedMin(_BoundsBuffer[1], FloatToSortableUint(splatPos.y));
+        InterlockedMin(_BoundsBuffer[2], FloatToSortableUint(splatPos.z));
+        InterlockedMax(_BoundsBuffer[3], FloatToSortableUint(splatPos.x));
+        InterlockedMax(_BoundsBuffer[4], FloatToSortableUint(splatPos.y));
+        InterlockedMax(_BoundsBuffer[5], FloatToSortableUint(splatPos.z));
     }
 }

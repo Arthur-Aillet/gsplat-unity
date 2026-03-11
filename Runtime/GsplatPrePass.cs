@@ -18,6 +18,7 @@ namespace Gsplat
         static readonly int k_cutoutsBuffer = Shader.PropertyToID("_SplatCutouts");
         static readonly int k_orderBuffer = Shader.PropertyToID("_OrderBuffer");
         static readonly int k_packedSplatsBuffer = Shader.PropertyToID("_PackedSplatsBuffer");
+        static readonly int k_boundsBuffer = Shader.PropertyToID("_BoundsBuffer");
 
         readonly bool m_Valid;
         public bool Valid => m_Valid;
@@ -26,6 +27,7 @@ namespace Gsplat
         {
             public GraphicsBuffer CutoutsBuffer;
             public GraphicsBuffer OrderSizeBuffer;
+            public GraphicsBuffer BoundsBuffer;
 
             public static SupportResources Create()
             {
@@ -33,7 +35,7 @@ namespace Gsplat
                 {
                     CutoutsBuffer = null,
                     OrderSizeBuffer = new GraphicsBuffer(GraphicsBuffer.Target.IndirectArguments, 1, sizeof(uint)),
-
+                    BoundsBuffer = new GraphicsBuffer(GraphicsBuffer.Target.Structured, 6, sizeof(uint)),
                 };
                 return resources;
             }
@@ -42,9 +44,11 @@ namespace Gsplat
             {
                 CutoutsBuffer?.Dispose();
                 OrderSizeBuffer?.Dispose();
+                BoundsBuffer?.Dispose();
 
                 CutoutsBuffer = null;
                 OrderSizeBuffer = null;
+                BoundsBuffer = null;
             }
         }
 
@@ -84,13 +88,34 @@ namespace Gsplat
             Assert.IsTrue(Valid);
             orderBuffer.SetCounterValue(0);
 
+            uint max = GsplatUtils.FloatToSortableUint(short.MaxValue);
+            uint min = GsplatUtils.FloatToSortableUint(short.MinValue);
+            uint[] array = {max, max, max, min, min, min};
+            res.BoundsBuffer.SetData(array);
+
             int threadBlocks = GsplatUtils.DivRoundUp(splatCount, 1024);
 
             UpdateCutoutsBuffer(ref res, cutouts);
             m_CS.SetInt(k_count, splatCount);
             m_CS.SetBuffer(m_kernelPreCompute, k_orderBuffer, orderBuffer);
             m_CS.SetBuffer(m_kernelPreCompute, k_packedSplatsBuffer, packedSplats);
+            m_CS.SetBuffer(m_kernelPreCompute, k_boundsBuffer, res.BoundsBuffer);
             m_CS.Dispatch(m_kernelPreCompute, threadBlocks, 1, 1);
+        }
+
+        public Bounds ExtractBounds(SupportResources res)
+        {
+            uint[] boundsData = new uint[6];
+            res.BoundsBuffer.GetData(boundsData);
+
+            Bounds bounds = default;
+            Vector3 bmin = new(GsplatUtils.SortableUintToFloat(boundsData[0]), GsplatUtils.SortableUintToFloat(boundsData[1]), GsplatUtils.SortableUintToFloat(boundsData[2]));
+            Vector3 bmax = new(GsplatUtils.SortableUintToFloat(boundsData[3]), GsplatUtils.SortableUintToFloat(boundsData[4]), GsplatUtils.SortableUintToFloat(boundsData[5]));
+            bounds.SetMinMax(bmin, bmax);
+
+            if (bounds.extents.sqrMagnitude < 0.01)
+                bounds.extents = new Vector3(0.1f,0.1f,0.1f);
+            return bounds;
         }
 
         public uint ExtractOrderSize(GraphicsBuffer orderBuffer, SupportResources res)
