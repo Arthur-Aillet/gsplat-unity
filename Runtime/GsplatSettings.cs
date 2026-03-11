@@ -58,6 +58,7 @@ namespace Gsplat
         public ComputeShader PrePassComputeShader;
         public uint SplatInstanceSize = 128;
         public bool ShowImportErrors = true;
+        public bool DisplayGSplatsBoundingBoxes = false;
         public Material[][] Materials { get; private set; }
         public Mesh Mesh { get; private set; }
         [Range(1, 20)] public uint MaxRenderOrder = 1;
