@@ -83,7 +83,7 @@ namespace Gsplat
             m_CS.SetInt(k_splatCutoutsCount, numberOfCutouts);
         }
 
-        public void Dispatch(GraphicsBuffer orderBuffer, GraphicsBuffer packedSplats, ref SupportResources res, GsplatCutout.ShaderData[] cutouts, int splatCount)
+        public void Dispatch(GraphicsBuffer orderBuffer, GraphicsBuffer packedSplats, ref SupportResources res, GsplatCutout.ShaderData[] cutouts, int splatCount, bool updateBounds)
         {
             Assert.IsTrue(Valid);
             orderBuffer.SetCounterValue(0);
@@ -100,6 +100,10 @@ namespace Gsplat
             m_CS.SetBuffer(m_kernelPreCompute, k_orderBuffer, orderBuffer);
             m_CS.SetBuffer(m_kernelPreCompute, k_packedSplatsBuffer, packedSplats);
             m_CS.SetBuffer(m_kernelPreCompute, k_boundsBuffer, res.BoundsBuffer);
+            if (updateBounds)
+                m_CS.EnableKeyword("UPDATE_BOUNDS");
+            else
+                m_CS.DisableKeyword("UPDATE_BOUNDS");
             m_CS.Dispatch(m_kernelPreCompute, threadBlocks, 1, 1);
         }
 
