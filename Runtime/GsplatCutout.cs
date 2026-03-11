@@ -33,6 +33,9 @@ namespace Gsplat
         public Target m_Target = Target.Parent;
         [HideInInspector] public GsplatRenderer m_SpecifcRenderer = null;
 
+        [Tooltip("Does the cutout update the Gsplat world bounds (Costly on moving cutouts)")]
+        public bool UpdateBounds = true;
+
         public static int ShaderDataSize { get { return UnsafeUtility.SizeOf<ShaderData>(); } }
 
         public struct ShaderData

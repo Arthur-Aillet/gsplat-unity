@@ -139,7 +139,6 @@ namespace Gsplat
                 m_prevSortComputeShader = SortComputeShader;
             }
 
-
             if (PrePassComputeShader != m_prevPrePassComputeShader)
             {
                 GsplatComputeManager.Instance.InitPrePass(PrePassComputeShader);
