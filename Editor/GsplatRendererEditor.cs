@@ -20,7 +20,7 @@ namespace Gsplat.Editor
 
             // RenderOrder slider depend on the MaxRenderOrder setting
             if (GsplatSettings.Instance.MaxRenderOrder > 1)
-                renderer.RenderOrder = (uint)EditorGUILayout.IntSlider(new GUIContent("Render Order"), (int)renderer.RenderOrder, 0, (int)GsplatSettings.Instance.MaxRenderOrder);
+                renderer.RenderOrder = (uint)EditorGUILayout.IntSlider(new GUIContent("Render Order"), (int)renderer.RenderOrder, 0, (int)GsplatSettings.Instance.MaxRenderOrder - 1);
 
             if (serializedObject.FindProperty(nameof(GsplatRenderer.AsyncUpload)).boolValue)
             {
