@@ -3,9 +3,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using UnityEngine;
-using UnityEngine.PlayerLoop;
 using UnityEngine.Rendering;
 
 namespace Gsplat
@@ -208,12 +206,19 @@ namespace Gsplat
 
             GsplatCutout.ShaderData[] updatedCutoutsData = new GsplatCutout.ShaderData[gs.Cutouts.Length];
             bool cutoutsUnchanged = res.CutoutsData.Length == updatedCutoutsData.Length;
+            bool cutoutUpdateBound = false;
             for (int i = 0; i != gs.Cutouts.Length; i++)
             {
                 updatedCutoutsData[i] = gs.Cutouts[i].GetShaderData(gs.transform.localToWorldMatrix);
                 if (cutoutsUnchanged)
+                {
                     if (updatedCutoutsData[i].matrix != res.CutoutsData[i].matrix || updatedCutoutsData[i].typeAndFlags != res.CutoutsData[i].typeAndFlags)
+                    {
                         cutoutsUnchanged = false;
+                        if (gs.Cutouts[i].UpdateBounds)
+                            cutoutUpdateBound = true;
+                    }
+                }
             }
 
             if (cutoutsUnchanged)
@@ -222,10 +227,13 @@ namespace Gsplat
             res.CutoutsData = updatedCutoutsData;
 
             var prePassResources = res.PrePassResources;
-            m_prePass.Dispatch(res.OrderBuffer, res.PackedSplatsBuffer, ref prePassResources, res.CutoutsData, (int)gs.SplatCount);
+            m_prePass.Dispatch(res.OrderBuffer, res.PackedSplatsBuffer, ref prePassResources, res.CutoutsData, (int)gs.SplatCount, cutoutUpdateBound);
             res.PrePassResources = prePassResources;
             gs.RemainingCount = m_prePass.ExtractOrderSize(res.OrderBuffer, res.PrePassResources);
-            gs.Bounds = m_prePass.ExtractBounds(res.PrePassResources);
+            if (cutoutUpdateBound)
+                gs.Bounds = m_prePass.ExtractBounds(res.PrePassResources);
+            else
+                gs.Bounds = gs.AssetBounds;
         }
 
         public IComputeManagerResource CreateComputeResource(uint count, GraphicsBuffer packedSplatsBuffer,
