@@ -28,7 +28,7 @@ namespace Gsplat
         static readonly int k_splatCount = Shader.PropertyToID("_SplatCount");
         static readonly int k_gammaToLinear = Shader.PropertyToID("_GammaToLinear");
         static readonly int k_shDegree = Shader.PropertyToID("_SHDegree");
-        static readonly int k_sizeTreshold = Shader.PropertyToID("_SizeThreshold");
+        static readonly int k_scaleFactor = Shader.PropertyToID("_ScaleFactor");
 
         public GsplatRendererImpl(uint splatCount, byte shBands)
         {
@@ -93,7 +93,7 @@ namespace Gsplat
         /// <param name="gammaToLinear">Covert color space from Gamma to Linear.</param>
         /// <param name="shDegree">Order of SH coefficients used for rendering. The final value is capped by the SHBands property.</param>
         public void Render(uint splatCount, Transform transform, Bounds localBounds, int layer,
-            bool gammaToLinear = false, float sizeTreshold = 1.0f, int shDegree = 3)
+            bool gammaToLinear = false, float scaleFactor = 1.0f, int shDegree = 3)
         {
             if (!Valid || !GsplatSettings.Instance.Valid || !GsplatSorter.Instance.Valid)
                 return;
@@ -101,7 +101,7 @@ namespace Gsplat
             m_propertyBlock.SetInteger(k_splatCount, (int)splatCount);
             m_propertyBlock.SetInteger(k_gammaToLinear, gammaToLinear ? 1 : 0);
             m_propertyBlock.SetInteger(k_splatInstanceSize, (int)GsplatSettings.Instance.SplatInstanceSize);
-            m_propertyBlock.SetFloat(k_sizeTreshold, sizeTreshold);
+            m_propertyBlock.SetFloat(k_scaleFactor, scaleFactor);
             m_propertyBlock.SetInteger(k_shDegree, shDegree);
             m_propertyBlock.SetMatrix(k_matrixM, transform.localToWorldMatrix);
             var rp = new RenderParams(GsplatSettings.Instance.Materials[SHBands])
