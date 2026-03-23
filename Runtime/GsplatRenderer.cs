@@ -117,7 +117,7 @@ namespace Gsplat
 
         public void ForceRefresh()
         {
-            m_renderer.ForceRefresh();
+            m_renderer?.ForceRefresh();
         }
 
 #if UNITY_EDITOR
