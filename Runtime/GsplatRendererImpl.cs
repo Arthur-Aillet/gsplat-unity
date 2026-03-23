@@ -2,7 +2,11 @@
 // SPDX-License-Identifier: MIT
 
 using System;
+using System.Collections.Generic;
+using System.Numerics;
 using UnityEngine;
+using Quaternion = UnityEngine.Quaternion;
+using Vector3 = UnityEngine.Vector3;
 
 namespace Gsplat
 {
@@ -33,11 +37,13 @@ namespace Gsplat
         private uint m_sortsBeforeRecomputeCutouts = 0;
         public bool ComputeSortRequired = true;
         public bool ComputeCutoutsRequired = true;
+        private Dictionary<int, (Vector3, Vector3)> m_prevCamTransforms;
 
         public GsplatRendererImpl(uint splatCount, byte shBands)
         {
             SplatCount = splatCount;
             SHBands = shBands;
+            m_prevCamTransforms = new Dictionary<int, (Vector3, Vector3)>();
             CreateResources(splatCount);
             CreatePropertyBlock();
         }
@@ -93,6 +99,30 @@ namespace Gsplat
             m_sortsBeforeRecomputeCutouts = 0;
         }
 
+        public void RefreshOnCameraMove()
+        {
+            foreach (var cam in Camera.allCameras)
+            {
+                var id = cam.GetInstanceID();
+                if (m_prevCamTransforms.TryGetValue(id, out (Vector3, Vector3)prevCamTransform))
+                {
+                    (Vector3 prevCamPos, Vector3 prevCamRot) = prevCamTransform;
+
+                    if ((cam.transform.position - prevCamPos).magnitude > GsplatSettings.Instance.CameraTranslationRefreshTreshold
+                        || (cam.transform.eulerAngles - prevCamRot).magnitude > GsplatSettings.Instance.CameraRotationRefreshTreshold)
+                    {
+                        m_prevCamTransforms[id] = (cam.transform.position, cam.transform.eulerAngles);
+                        ForceRefresh();
+                    }
+                }
+                else
+                {
+                    m_prevCamTransforms.Add(cam.GetInstanceID(), (cam.transform.position, cam.transform.eulerAngles));
+                    ForceRefresh();
+                }
+            }
+        }
+
         public void EvaluateRefreshRequired(GsplatRenderer.GsplatSortMode mode, uint sortRefreshRate, uint cutoutsRefreshRate)
         {
             if (mode == GsplatRenderer.GsplatSortMode.Always)
@@ -105,9 +135,11 @@ namespace Gsplat
                 cutoutsRefreshRate = 0;
             }
 
+            RefreshOnCameraMove();
+
             ComputeSortRequired = false;
             ComputeCutoutsRequired = false;
-            
+
             if (m_framesBeforeRecomputeSort == 0)
             {
                 m_framesBeforeRecomputeSort = sortRefreshRate;

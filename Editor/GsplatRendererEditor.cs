@@ -21,7 +21,7 @@ namespace Gsplat.Editor
             // Sort Refresh Rate slider only if on correct mode
             if (renderer.SortMode == GsplatRenderer.GsplatSortMode.SortEachNFrames || renderer.SortMode == GsplatRenderer.GsplatSortMode.CutoutsEachNSorts)
             {
-                var newSortRefreshRate = (uint)EditorGUILayout.IntSlider(new GUIContent("Sort Refresh Rate"), (int)renderer.SortRefreshRate, 1, 4000);
+                var newSortRefreshRate = (uint)EditorGUILayout.IntSlider(new GUIContent("Sort Refresh Rate"), (int)renderer.SortRefreshRate, 1, 60);
                 if (newSortRefreshRate != renderer.SortRefreshRate)
                 {
                     renderer.SortRefreshRate = newSortRefreshRate;
@@ -32,7 +32,7 @@ namespace Gsplat.Editor
             // Cutouts Refresh Rate slider only if on correct mode
             if (renderer.SortMode == GsplatRenderer.GsplatSortMode.CutoutsEachNSorts)
             {
-                var newCutoutsRefreshRate = (uint)EditorGUILayout.IntSlider(new GUIContent("Sort Refresh Rate"), (int)renderer.CutoutsRefreshRate, 1, 4000);
+                var newCutoutsRefreshRate = (uint)EditorGUILayout.IntSlider(new GUIContent("Sort Refresh Rate"), (int)renderer.CutoutsRefreshRate, 1, 60);
                 if (newCutoutsRefreshRate != renderer.CutoutsRefreshRate)
                 {
                     renderer.CutoutsRefreshRate = newCutoutsRefreshRate;
