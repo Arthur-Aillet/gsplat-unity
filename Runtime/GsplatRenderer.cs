@@ -13,7 +13,8 @@ namespace Gsplat
         public enum GsplatSortMode
         {
             Always,
-            EachNFrames
+            SortEachNFrames,
+            CutoutsEachNSorts,
         }
 
         public GsplatAsset GsplatAsset;
@@ -22,7 +23,8 @@ namespace Gsplat
         public bool GammaToLinear;
         public bool AsyncUpload;
         public GsplatSortMode SortMode = GsplatSortMode.Always;
-        [HideInInspector] public uint SortRefreshRate = 20;
+        [HideInInspector] public uint SortRefreshRate = 1;
+        [HideInInspector] public uint CutoutsRefreshRate = 1;
         [Tooltip("Max splat count to be uploaded per frame")]
         public uint UploadBatchSize = 100000;
 
@@ -41,7 +43,8 @@ namespace Gsplat
         public Bounds AssetBounds { get => GsplatAsset.Bounds; }
 
         public IComputeManagerResource Resource => m_renderer.Resource;
-        public bool ComputeRequired => m_renderer.ComputeRequired;
+        public bool ComputeSortRequired => m_renderer.ComputeSortRequired;
+        public bool ComputeCutoutsRequired => m_renderer.ComputeCutoutsRequired;
 
         public GsplatCutout[] Cutouts
         {
@@ -107,6 +110,16 @@ namespace Gsplat
             m_renderer = null;
         }
 
+        void OnValidate()
+        {
+            ForceRefresh();
+        }
+
+        public void ForceRefresh()
+        {
+            m_renderer.ForceRefresh();
+        }
+
 #if UNITY_EDITOR
         public void OnDrawGizmos()
         {
@@ -146,7 +159,7 @@ namespace Gsplat
 
             if (Valid)
             {
-                m_renderer.EvaluateComputeRequired(SortMode, SortRefreshRate);
+                m_renderer.EvaluateRefreshRequired(SortMode, SortRefreshRate - 1, CutoutsRefreshRate - 1);
                 GsplatComputeManager.Instance.DispatchPrePass(this);
                 m_renderer.Render(m_remainingCount, transform, m_bounds,
                     gameObject.layer, GammaToLinear, SHDegree, RenderOrder);

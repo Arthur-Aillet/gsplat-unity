@@ -29,8 +29,10 @@ namespace Gsplat
         static readonly int k_splatInstanceSize = Shader.PropertyToID("_SplatInstanceSize");
         static readonly int k_gammaToLinear = Shader.PropertyToID("_GammaToLinear");
         static readonly int k_shDegree = Shader.PropertyToID("_SHDegree");
-        private uint m_framesBeforeRecompute = 0;
-        public bool ComputeRequired = true;
+        private uint m_framesBeforeRecomputeSort = 0;
+        private uint m_sortsBeforeRecomputeCutouts = 0;
+        public bool ComputeSortRequired = true;
+        public bool ComputeCutoutsRequired = true;
 
         public GsplatRendererImpl(uint splatCount, byte shBands)
         {
@@ -85,25 +87,41 @@ namespace Gsplat
             OrderBuffer = null;
         }
 
-        public void EvaluateComputeRequired(GsplatRenderer.GsplatSortMode mode, uint sortRefreshRate)
+        public void ForceRefresh()
+        {
+            m_framesBeforeRecomputeSort = 0;
+            m_sortsBeforeRecomputeCutouts = 0;
+        }
+
+        public void EvaluateRefreshRequired(GsplatRenderer.GsplatSortMode mode, uint sortRefreshRate, uint cutoutsRefreshRate)
         {
             if (mode == GsplatRenderer.GsplatSortMode.Always)
             {
-                ComputeRequired = true;
+                sortRefreshRate = 0;
+                cutoutsRefreshRate = 0;
             }
-            else
+            if (mode == GsplatRenderer.GsplatSortMode.SortEachNFrames)
             {
-                if (m_framesBeforeRecompute == 0)
+                cutoutsRefreshRate = 0;
+            }
+
+            ComputeSortRequired = false;
+            ComputeCutoutsRequired = false;
+            
+            if (m_framesBeforeRecomputeSort == 0)
+            {
+                m_framesBeforeRecomputeSort = sortRefreshRate;
+                ComputeSortRequired = true;
+                if (m_sortsBeforeRecomputeCutouts == 0)
                 {
-                    m_framesBeforeRecompute = sortRefreshRate;
-                    ComputeRequired = true;
+                    m_sortsBeforeRecomputeCutouts = cutoutsRefreshRate;
+                    ComputeCutoutsRequired = true;
                 }
                 else
-                {
-                    m_framesBeforeRecompute -= 1;
-                    ComputeRequired = false;
-                }
+                    m_sortsBeforeRecomputeCutouts -= 1;
             }
+            else
+                m_framesBeforeRecomputeSort -= 1;
         }
 
         /// <summary>

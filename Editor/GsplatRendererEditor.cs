@@ -18,9 +18,27 @@ namespace Gsplat.Editor
 
              var renderer = (GsplatRenderer)target;
 
-            // Sort Refresh Rate slider only if the sort is each N Frames
-            if (renderer.SortMode == GsplatRenderer.GsplatSortMode.EachNFrames)
-                renderer.SortRefreshRate = (uint)EditorGUILayout.IntSlider(new GUIContent("Sort Refresh Rate"), (int)renderer.SortRefreshRate, 1, 40);
+            // Sort Refresh Rate slider only if on correct mode
+            if (renderer.SortMode == GsplatRenderer.GsplatSortMode.SortEachNFrames || renderer.SortMode == GsplatRenderer.GsplatSortMode.CutoutsEachNSorts)
+            {
+                var newSortRefreshRate = (uint)EditorGUILayout.IntSlider(new GUIContent("Sort Refresh Rate"), (int)renderer.SortRefreshRate, 1, 4000);
+                if (newSortRefreshRate != renderer.SortRefreshRate)
+                {
+                    renderer.SortRefreshRate = newSortRefreshRate;
+                    renderer.ForceRefresh();
+                }
+            }
+
+            // Cutouts Refresh Rate slider only if on correct mode
+            if (renderer.SortMode == GsplatRenderer.GsplatSortMode.CutoutsEachNSorts)
+            {
+                var newCutoutsRefreshRate = (uint)EditorGUILayout.IntSlider(new GUIContent("Sort Refresh Rate"), (int)renderer.CutoutsRefreshRate, 1, 4000);
+                if (newCutoutsRefreshRate != renderer.CutoutsRefreshRate)
+                {
+                    renderer.CutoutsRefreshRate = newCutoutsRefreshRate;
+                    renderer.ForceRefresh();
+                }
+            }
 
             // RenderOrder slider depend on the MaxRenderOrder setting
             if (GsplatSettings.Instance.MaxRenderOrder > 1)
